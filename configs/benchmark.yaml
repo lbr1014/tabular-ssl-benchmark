@@ -1,0 +1,25 @@
+# Global experimental settings for the benchmark.
+#
+# label_fractions defines the proportion of the training partition whose
+# labels remain available to supervised and semi-supervised methods.
+#
+# seeds defines independent repetitions of each experimental configuration.
+#
+# test_size defines the fraction of the complete dataset reserved for the
+# final held-out test set.
+
+label_fractions:
+  - 0.05
+  - 0.10
+  - 0.20
+  - 0.50
+  - 1.00
+
+seeds:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+
+test_size: 0.20

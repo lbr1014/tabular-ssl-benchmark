@@ -1,0 +1,9 @@
+# Dataset catalogue used by the benchmark.
+#
+# Each dataset is identified by a stable local name and its explicit
+#  OpenML data ID. Disabled datasets are excluded from experiment generation.
+
+datasets:
+  - name: iris
+    openml_id: 61
+    enabled: true
