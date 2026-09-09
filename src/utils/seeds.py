@@ -21,22 +21,42 @@ def set_global_seed(seed: int) -> None:
     Args:
         seed (int): The random seed to set.
     """
-    _validate_seed(seed)
+    validate_seed(seed)
     
     os.environ["PYTHONHASHSEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
     
+def derive_seed(seed: int, stream: int) -> int:
+    """"Derive a deterministic child seed from a root seed.
     
-def _validate_seed(seed: int) -> None:
+    Args:
+        seed (int): The root random seed
+        stream (int): An integer representing the stochastic component..
+        
+    Returns:
+        int: A deterministic child seed derived from the root seed.
+    """
+    validate_seed(seed)
+    validate_seed(stream, name="stream")
+
+    seed_sequence = np.random.SeedSequence(
+        entropy=seed,
+        spawn_key=(stream,),
+    )
+
+    return int(seed_sequence.generate_state(1, dtype=np.uint32)[0])
+    
+def validate_seed(seed: int, name: str = "seed") -> None:
     """Validate a random seed.
 
     Args:
         seed (int): The random seed to validate.
+        name (str): The name of the seed parameter for error messages.
     """
     
     if not isinstance(seed, int) or isinstance(seed, bool):
-        raise TypeError("seed must be an integer.")
+        raise TypeError(f"{name} must be an integer.")
 
     if seed < 0:
-        raise ValueError("seed must be non-negative.")
+        raise ValueError(f"{name} must be non-negative.")
