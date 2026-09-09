@@ -15,6 +15,61 @@ import pandas as pd
 class TabularDataset:
     """Represent a tabular classification dataset and its metadata.
     """
+    def __post_init__(self) -> None:
+        """Validate the internal consistency of the dataset."""
+
+        if not isinstance(self.X, pd.DataFrame):
+            raise TypeError("X must be a pandas DataFrame.")
+
+        if not isinstance(self.y, pd.Series):
+            raise TypeError("y must be a pandas Series.")
+
+        if len(self.X) == 0:
+            raise ValueError("X must contain at least one sample.")
+
+        if self.X.shape[1] == 0:
+            raise ValueError("X must contain at least one feature.")
+
+        if len(self.X) != len(self.y):
+            raise ValueError(
+                "X and y must contain the same number of samples."
+            )
+
+        if self.y.nunique(dropna=True) < 2:
+            raise ValueError(
+                "y must contain at least two classes."
+            )
+
+        categorical = set(self.categorical_features)
+        numerical = set(self.numerical_features)
+        available = set(self.X.columns)
+
+        overlap = categorical & numerical
+
+        if overlap:
+            raise ValueError(
+                "Features cannot be both categorical and numerical: "
+                f"{sorted(overlap)}."
+            )
+
+        declared = categorical | numerical
+        unknown = declared - available
+
+        if unknown:
+            raise ValueError(
+                "Feature type metadata contains unknown columns: "
+                f"{sorted(unknown)}."
+            )
+
+        missing = available - declared
+
+        if missing:
+            raise ValueError(
+                "Every feature must be classified as categorical or numerical. "
+                f"Missing features: {sorted(missing)}."
+            )
+
+
 
     name: str
     X: pd.DataFrame
