@@ -1,9 +1,12 @@
+"""Tests for experiment configuration utilities."""
+
 import pytest
 
 from benchmark.experiment import ExperimentConfig
 
 
 def test_experiment_id_supervised():
+    """Supervised experiments should include supervised in their identifier."""
     config = ExperimentConfig(
         dataset_name="adult",
         model_name="tabpfn",
@@ -19,6 +22,7 @@ def test_experiment_id_supervised():
 
 
 def test_experiment_id_ssl():
+    """SSL experiments should include the SSL method in their identifier."""
     config = ExperimentConfig(
         dataset_name="adult",
         model_name="random_forest",
@@ -34,6 +38,7 @@ def test_experiment_id_ssl():
 
 
 def test_invalid_label_fraction():
+    """Label fractions outside the valid interval (0, 1] should be rejected."""
     with pytest.raises(ValueError):
         ExperimentConfig(
             dataset_name="adult",
@@ -45,6 +50,7 @@ def test_invalid_label_fraction():
 
 
 def test_invalid_test_size():
+    """Test sizes outside the valid interval (0, 1) should be rejected."""
     with pytest.raises(ValueError):
         ExperimentConfig(
             dataset_name="adult",

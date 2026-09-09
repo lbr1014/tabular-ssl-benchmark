@@ -1,3 +1,5 @@
+"""Experiment configuration and result data structures for the benchmark."""
+
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -16,6 +18,7 @@ class ExperimentConfig:
     test_size: float = 0.2
 
     def __post_init__(self) -> None:
+        """Validate the configuration parameters."""
         if not 0 < self.label_fraction <= 1:
             raise ValueError(
                 "label_fraction must be in the interval (0, 1]."
@@ -28,6 +31,11 @@ class ExperimentConfig:
         
     @property
     def experiment_id(self) -> str:
+        """Build a unique identifier for the experiment based on its configuration.
+        
+        Returns:
+            str: A unique identifier string for the experiment.
+        """
         ssl = self.ssl_method or "supervised"
 
         return (
