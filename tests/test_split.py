@@ -261,3 +261,87 @@ def test_split_preserves_class_balance(balanced_target):
     assert train_positive_rate == pytest.approx(0.5)
     assert test_positive_rate == pytest.approx(0.5)
     assert labeled_positive_rate == pytest.approx(0.5)
+    
+def test_different_seeds_produce_different_splits(balanced_target):
+    """Different root seeds should produce different dataset splits."""
+    first = create_ssl_split(
+        y=balanced_target,
+        label_fraction=0.2,
+        test_size=0.2,
+        seed=42,
+    )
+
+    second = create_ssl_split(
+        y=balanced_target,
+        label_fraction=0.2,
+        test_size=0.2,
+        seed=123,
+    )
+
+    assert not np.array_equal(
+        first.train_indices,
+        second.train_indices,
+    )
+
+    assert not np.array_equal(
+        first.labeled_indices,
+        second.labeled_indices,
+    )
+    
+@pytest.mark.parametrize("invalid_seed", [-1, -42])
+def test_negative_seed_raises_value_error(
+    balanced_target,
+    invalid_seed,
+):
+    """Negative experiment seeds should be rejected."""
+    with pytest.raises(
+        ValueError,
+        match="seed must be non-negative",
+    ):
+        create_ssl_split(
+            y=balanced_target,
+            label_fraction=0.2,
+            test_size=0.2,
+            seed=invalid_seed,
+        )
+
+
+@pytest.mark.parametrize(
+    "invalid_seed",
+    [1.5, "42", None, True],
+)
+def test_non_integer_seed_raises_type_error(
+    balanced_target,
+    invalid_seed,
+):
+    """Non-integer experiment seeds should be rejected."""
+    with pytest.raises(
+        TypeError,
+        match="seed must be an integer",
+    ):
+        create_ssl_split(
+            y=balanced_target,
+            label_fraction=0.2,
+            test_size=0.2,
+            seed=invalid_seed,
+        )
+
+def test_all_indices_are_within_dataset_bounds(balanced_target):
+    """All returned indices should refer to valid dataset samples."""
+    split = create_ssl_split(
+        y=balanced_target,
+        label_fraction=0.2,
+        test_size=0.2,
+        seed=42,
+    )
+
+    n_samples = len(balanced_target)
+
+    for indices in (
+        split.train_indices,
+        split.test_indices,
+        split.labeled_indices,
+        split.unlabeled_indices,
+    ):
+        assert np.all(indices >= 0)
+        assert np.all(indices < n_samples)

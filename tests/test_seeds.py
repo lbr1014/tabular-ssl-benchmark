@@ -6,7 +6,7 @@ import random
 import numpy as np
 import pytest
 
-from utils.seeds import set_global_seed
+from utils.seeds import derive_seed, set_global_seed
 
 
 def test_python_random_is_reproducible():
@@ -64,3 +64,56 @@ def test_non_integer_seed_raises_type_error(invalid_seed):
     """Non-integer seeds should be rejected."""
     with pytest.raises(TypeError, match="seed must be an integer"):
         set_global_seed(invalid_seed)
+        
+def test_derived_seed_is_reproducible():
+    """The same root seed and stream should produce the same child seed."""
+    first_seed = derive_seed(42, stream=0)
+    second_seed = derive_seed(42, stream=0)
+
+    assert first_seed == second_seed
+
+
+def test_different_streams_produce_different_derived_seeds():
+    """Different streams should produce different child seeds."""
+    first_seed = derive_seed(42, stream=0)
+    second_seed = derive_seed(42, stream=1)
+
+    assert first_seed != second_seed
+
+
+def test_different_root_seeds_produce_different_derived_seeds():
+    """Different root seeds should produce different child seeds."""
+    first_seed = derive_seed(42, stream=0)
+    second_seed = derive_seed(123, stream=0)
+
+    assert first_seed != second_seed
+
+
+def test_derived_seed_is_valid_uint32():
+    """Derived seeds should lie within the unsigned 32-bit range."""
+    derived_seed = derive_seed(42, stream=0)
+
+    assert 0 <= derived_seed <= np.iinfo(np.uint32).max
+
+
+@pytest.mark.parametrize("invalid_stream", [-1, -42])
+def test_negative_stream_raises_value_error(invalid_stream):
+    """Negative stream identifiers should be rejected."""
+    with pytest.raises(
+        ValueError,
+        match="stream must be non-negative",
+    ):
+        derive_seed(42, stream=invalid_stream)
+
+
+@pytest.mark.parametrize(
+    "invalid_stream",
+    [1.5, "1", None, True],
+)
+def test_non_integer_stream_raises_type_error(invalid_stream):
+    """Non-integer stream identifiers should be rejected."""
+    with pytest.raises(
+        TypeError,
+        match="stream must be an integer",
+    ):
+        derive_seed(42, stream=invalid_stream)
