@@ -7,10 +7,19 @@ the requested label fraction.
 """
 
 from dataclasses import dataclass
+from enum import IntEnum
 
 import numpy as np
 from sklearn.model_selection import train_test_split
 
+from utils.seeds import derive_seed, validate_seed
+
+
+class SplitSeedStream(IntEnum):
+    """Random seed streams used during dataset splitting."""
+
+    TRAIN_TEST = 0
+    LABELED_UNLABELED = 1
 
 @dataclass(frozen=True)
 class DatasetSplit:
@@ -43,6 +52,8 @@ def create_ssl_split(
     
     y = np.asarray(y)
 
+    validate_seed(seed)
+    
     _validate_split_inputs(
         y=y,
         label_fraction=label_fraction,
@@ -50,11 +61,21 @@ def create_ssl_split(
     )
 
     indices = np.arange(len(y))
+    
+    train_test_seed = derive_seed(
+        seed,
+        SplitSeedStream.TRAIN_TEST,
+    )
+
+    labeled_seed = derive_seed(
+        seed,
+        SplitSeedStream.LABELED_UNLABELED,
+    )
 
     train_indices, test_indices = train_test_split(
         indices,
         test_size=test_size,
-        random_state=seed,
+        random_state=train_test_seed,
         stratify=y,
     )
 
@@ -65,7 +86,7 @@ def create_ssl_split(
         labeled_indices, unlabeled_indices = train_test_split(
             train_indices,
             train_size=label_fraction,
-            random_state=seed,
+            random_state=labeled_seed,
             stratify=y[train_indices],
         )
 
