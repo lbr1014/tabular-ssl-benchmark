@@ -3,13 +3,17 @@
 This module centralises the random seed handling used throughout the
 benchmark.
 """
-
+from enum import IntEnum
 import os
 import random
 
 import numpy as np
 
-
+class SeedStream(IntEnum):
+    """Independent deterninistic random stream used by the benchmark."""
+    
+    MODEL = 100
+    
 def set_global_seed(seed: int) -> None:
     """Set the global random seed for reproducibility.
 
@@ -28,11 +32,11 @@ def set_global_seed(seed: int) -> None:
     np.random.seed(seed)
     
 def derive_seed(seed: int, stream: int) -> int:
-    """"Derive a deterministic child seed from a root seed.
+    """Derive a deterministic child seed from a root seed.
     
     Args:
         seed (int): The root random seed
-        stream (int): An integer representing the stochastic component..
+        stream (int): An integer representing the stochastic component.
         
     Returns:
         int: A deterministic child seed derived from the root seed.
