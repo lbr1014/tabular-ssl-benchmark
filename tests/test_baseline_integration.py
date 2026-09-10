@@ -276,3 +276,136 @@ def test_baseline_pipeline_is_reproducible(
         first_probabilities,
         second_probabilities,
     )
+    
+def test_unlabeled_data_does_not_affect_supervised_baseline(
+    mixed_dataset: TabularDataset,
+):
+    """Changing unlabeled data must not affect supervised predictions."""
+    seed = 42
+    label_fraction = 0.5
+    test_size = 0.2
+
+    split = create_ssl_split(
+        mixed_dataset.y,
+        label_fraction=label_fraction,
+        test_size=test_size,
+        seed=seed,
+    )
+
+    modified_dataset = TabularDataset(
+        name=mixed_dataset.name,
+        X=mixed_dataset.X.copy(),
+        y=mixed_dataset.y.copy(),
+        target_name=mixed_dataset.target_name,
+        source=mixed_dataset.source,
+        source_id=mixed_dataset.source_id,
+        source_version=mixed_dataset.source_version,
+        categorical_features=mixed_dataset.categorical_features,
+        numerical_features=mixed_dataset.numerical_features,
+        metadata=mixed_dataset.metadata.copy(),
+    )
+
+    modified_dataset.X.loc[
+        split.unlabeled_indices,
+        "age",
+    ] = 1_000_000.0
+
+    modified_dataset.X.loc[
+        split.unlabeled_indices,
+        "income",
+    ] = -1_000_000.0
+
+    modified_dataset.X.loc[
+        split.unlabeled_indices,
+        "sector",
+    ] = "unseen_unlabeled_category"
+
+    original = _prepare_supervised_split(
+        mixed_dataset,
+        label_fraction=label_fraction,
+        test_size=test_size,
+        seed=seed,
+    )
+
+    modified = _prepare_supervised_split(
+        modified_dataset,
+        label_fraction=label_fraction,
+        test_size=test_size,
+        seed=seed,
+    )
+
+    (
+        X_train_original,
+        y_train_original,
+        X_test_original,
+        _,
+        _,
+    ) = original
+
+    (
+        X_train_modified,
+        y_train_modified,
+        X_test_modified,
+        _,
+        _,
+    ) = modified
+
+    original_model = create_random_forest(seed=seed)
+    modified_model = create_random_forest(seed=seed)
+
+    original_model.fit(
+        X_train_original,
+        y_train_original,
+    )
+
+    modified_model.fit(
+        X_train_modified,
+        y_train_modified,
+    )
+
+    original_probabilities = original_model.predict_proba(
+        X_test_original
+    )
+
+    modified_probabilities = modified_model.predict_proba(
+        X_test_modified
+    )
+
+    assert np.array_equal(
+        y_train_original,
+        y_train_modified,
+    )
+
+    assert np.allclose(
+        X_train_original,
+        X_train_modified,
+    )
+
+    assert np.allclose(
+        X_test_original,
+        X_test_modified,
+    )
+
+    assert np.allclose(
+        original_probabilities,
+        modified_probabilities,
+    )    
+    
+def test_supervised_baseline_partitions_are_isolated(
+    mixed_dataset: TabularDataset,
+):
+    """Labelled, unlabeled, and test partitions must remain disjoint."""
+    split = create_ssl_split(
+        mixed_dataset.y,
+        label_fraction=0.5,
+        test_size=0.2,
+        seed=42,
+    )
+
+    labeled = set(split.labeled_indices.tolist())
+    unlabeled = set(split.unlabeled_indices.tolist())
+    test = set(split.test_indices.tolist())
+
+    assert labeled.isdisjoint(unlabeled)
+    assert labeled.isdisjoint(test)
+    assert unlabeled.isdisjoint(test)
