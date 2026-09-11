@@ -64,3 +64,122 @@ def test_probabilistic_metrics_are_python_floats():
         isinstance(value, float)
         for value in metrics.values()
     )
+    
+def test_probabilistic_metrics_support_multiclass():
+    """Probability metrics should support multiclass classification."""
+    y_true = np.array([0, 1, 2, 0, 1, 2])
+
+    y_proba = np.array(
+        [
+            [0.8, 0.1, 0.1],
+            [0.1, 0.8, 0.1],
+            [0.1, 0.1, 0.8],
+            [0.7, 0.2, 0.1],
+            [0.2, 0.7, 0.1],
+            [0.1, 0.2, 0.7],
+        ]
+    )
+
+    metrics = compute_probabilistic_metrics(
+        y_true,
+        y_proba,
+        classes=np.array([0, 1, 2]),
+    )
+
+    assert 0.0 <= metrics["roc_auc"] <= 1.0
+    assert metrics["log_loss"] >= 0.0
+    
+def test_probabilistic_metrics_support_multiclass():
+    """Probability metrics should support multiclass classification."""
+    y_true = np.array([0, 1, 2, 0, 1, 2])
+
+    y_proba = np.array(
+        [
+            [0.8, 0.1, 0.1],
+            [0.1, 0.8, 0.1],
+            [0.1, 0.1, 0.8],
+            [0.7, 0.2, 0.1],
+            [0.2, 0.7, 0.1],
+            [0.1, 0.2, 0.7],
+        ]
+    )
+
+    metrics = compute_probabilistic_metrics(
+        y_true,
+        y_proba,
+        classes=np.array([0, 1, 2]),
+    )
+
+    assert 0.0 <= metrics["roc_auc"] <= 1.0
+    assert metrics["log_loss"] >= 0.0
+    
+def test_probabilistic_metrics_reject_wrong_probability_columns():
+    """Probability matrices must contain one column per class."""
+    with pytest.raises(
+        ValueError,
+        match="one column per class",
+    ):
+        compute_probabilistic_metrics(
+            np.array([0, 1]),
+            np.array(
+                [
+                    [0.5, 0.3, 0.2],
+                    [0.1, 0.8, 0.1],
+                ]
+            ),
+            classes=np.array([0, 1]),
+        )
+
+
+def test_probabilistic_metrics_reject_probabilities_outside_range():
+    """Class probabilities must remain within the unit interval."""
+    with pytest.raises(
+        ValueError,
+        match="between 0 and 1",
+    ):
+        compute_probabilistic_metrics(
+            np.array([0, 1]),
+            np.array(
+                [
+                    [1.1, -0.1],
+                    [0.2, 0.8],
+                ]
+            ),
+            classes=np.array([0, 1]),
+        )
+
+
+def test_probabilistic_metrics_reject_non_normalized_rows():
+    """Each probability row must represent a valid distribution."""
+    with pytest.raises(
+        ValueError,
+        match="sum to 1",
+    ):
+        compute_probabilistic_metrics(
+            np.array([0, 1]),
+            np.array(
+                [
+                    [0.7, 0.7],
+                    [0.2, 0.8],
+                ]
+            ),
+            classes=np.array([0, 1]),
+        )
+
+
+def test_probabilistic_metrics_reject_unknown_true_labels():
+    """Ground-truth labels must belong to the declared classes."""
+    with pytest.raises(
+        ValueError,
+        match="not present in classes",
+    ):
+        compute_probabilistic_metrics(
+            np.array([0, 2]),
+            np.array(
+                [
+                    [0.8, 0.2],
+                    [0.3, 0.7],
+                ]
+            ),
+            classes=np.array([0, 1]),
+        )
