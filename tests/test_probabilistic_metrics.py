@@ -183,3 +183,38 @@ def test_probabilistic_metrics_reject_unknown_true_labels():
             ),
             classes=np.array([0, 1]),
         )
+        
+def test_log_loss_penalizes_overconfident_wrong_predictions():
+    """Log loss should penalize confident incorrect probabilities."""
+    y_true = np.array([0, 1])
+
+    moderate_proba = np.array(
+        [
+            [0.6, 0.4],
+            [0.6, 0.4],
+        ]
+    )
+
+    overconfident_proba = np.array(
+        [
+            [0.99, 0.01],
+            [0.99, 0.01],
+        ]
+    )
+
+    moderate = compute_probabilistic_metrics(
+        y_true,
+        moderate_proba,
+        classes=np.array([0, 1]),
+    )
+
+    overconfident = compute_probabilistic_metrics(
+        y_true,
+        overconfident_proba,
+        classes=np.array([0, 1]),
+    )
+
+    assert (
+        overconfident["log_loss"]
+        > moderate["log_loss"]
+    )
