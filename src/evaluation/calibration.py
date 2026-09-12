@@ -236,3 +236,36 @@ def multiclass_brier_score(
             )
         )
     )
+    
+def compute_calibration_metrics(
+    y_true: np.ndarray,
+    y_proba: np.ndarray,
+    classes: np.ndarray,
+    *,
+    n_bins: int = 10,
+) -> dict[str, float]:
+    """Compute calibration-related evaluation metrics.
+
+    Args:
+        y_true (np.ndarray): Ground-truth class labels.
+        y_proba (np.ndarray): Predicted class probabilities.
+        classes (np.ndarray): Class labels.
+        n_bins (int, optional): Number of equal-width bins used for ECE. Defaults to 10.
+
+    Returns:
+        dict[str, float]: Mapping containing Brier score and Expected Calibration Error.
+    """
+    
+    return {
+        "brier_score": multiclass_brier_score(
+            y_true,
+            y_proba,
+            classes,
+        ),
+        "ece": expected_calibration_error(
+            y_true,
+            y_proba,
+            classes,
+            n_bins=n_bins,
+        ),
+    }
