@@ -191,3 +191,48 @@ def _validate_calibration_inputs(
         raise ValueError(
             "n_bins must be positive."
         )
+        
+def multiclass_brier_score(
+    y_true: np.ndarray,
+    y_proba: np.ndarray,
+    classes: np.ndarray,
+) -> float:
+    """Compute the multiclass Brier score.
+
+    Args:
+        y_true (np.ndarray): Ground-truth class labels.
+        y_proba (np.ndarray): Predicted class probabilities.
+        classes (np.ndarray): Class labels.
+
+    Returns:
+        float: Multiclass Brier score.
+    """
+    
+    true = np.asarray(y_true)
+    probabilities = np.asarray(y_proba)
+    class_labels = np.asarray(classes)
+
+    _validate_calibration_inputs(
+        y_true=true,
+        y_proba=probabilities,
+        classes=class_labels,
+        n_bins=10,
+    )
+
+    targets = (
+        true[:, np.newaxis]
+        == class_labels[np.newaxis, :]
+    ).astype(float)
+
+    squared_error = (
+        probabilities - targets
+    ) ** 2
+
+    return float(
+        np.mean(
+            np.sum(
+                squared_error,
+                axis=1,
+            )
+        )
+    )
