@@ -1,7 +1,11 @@
 """Tests for single supervised benchmark experiment execution."""
 
+import pytest
+
 from benchmark.experiment import ExperimentResult
-from benchmark.runner import run_supervised_experiment
+from benchmark.runner import run_experiment_spec, run_supervised_experiment
+from config.matrix import ExperimentSpec
+from config.models import DatasetConfig
 from models.sklearn_models import (
     create_logistic_regression,
     create_random_forest,
@@ -160,3 +164,115 @@ def test_supervised_runner_supports_fully_labeled_training_data(
     assert result.n_unlabeled == 0
     assert result.n_labeled == result.n_train
     assert result.n_train + result.n_test == mixed_dataset.n_samples
+    
+def test_run_experiment_spec_returns_result(
+    mixed_dataset,
+):
+    """An experiment specification should execute end to end."""
+    spec = ExperimentSpec(
+        dataset=DatasetConfig(
+            name=mixed_dataset.name,
+            openml_id=1,
+        ),
+        model_name="logistic_regression",
+        label_fraction=0.5,
+        seed=42,
+        test_size=0.2,
+    )
+
+    result = run_experiment_spec(
+        spec=spec,
+        dataset=mixed_dataset,
+    )
+
+    assert isinstance(
+        result,
+        ExperimentResult,
+    )
+
+    assert result.config.dataset_name == mixed_dataset.name
+    assert result.config.model_name == "logistic_regression"
+    assert result.config.label_fraction == 0.5
+    assert result.config.seed == 42
+    assert result.config.test_size == 0.2
+    
+@pytest.mark.parametrize(
+    "model_name",
+    [
+        "logistic_regression",
+        "random_forest",
+    ],
+)
+def test_run_experiment_spec_supports_registered_models(
+    mixed_dataset,
+    model_name,
+):
+    """Experiment specifications should create registered classifiers."""
+    spec = ExperimentSpec(
+        dataset=DatasetConfig(
+            name=mixed_dataset.name,
+            openml_id=1,
+        ),
+        model_name=model_name,
+        label_fraction=0.5,
+        seed=42,
+        test_size=0.2,
+    )
+
+    result = run_experiment_spec(
+        spec=spec,
+        dataset=mixed_dataset,
+    )
+
+    assert result.config.model_name == model_name
+    
+def test_run_experiment_spec_rejects_dataset_mismatch(
+    mixed_dataset,
+):
+    """A specification must not run on a different dataset."""
+    spec = ExperimentSpec(
+        dataset=DatasetConfig(
+            name="different_dataset",
+            openml_id=1,
+        ),
+        model_name="logistic_regression",
+        label_fraction=0.5,
+        seed=42,
+        test_size=0.2,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Loaded dataset does not match",
+    ):
+        run_experiment_spec(
+            spec=spec,
+            dataset=mixed_dataset,
+        )
+        
+def test_run_experiment_spec_is_reproducible(
+    mixed_dataset,
+):
+    """Equal specifications should produce equal experiment results."""
+    spec = ExperimentSpec(
+        dataset=DatasetConfig(
+            name=mixed_dataset.name,
+            openml_id=1,
+        ),
+        model_name="random_forest",
+        label_fraction=0.5,
+        seed=42,
+        test_size=0.2,
+    )
+
+    first = run_experiment_spec(
+        spec=spec,
+        dataset=mixed_dataset,
+    )
+
+    second = run_experiment_spec(
+        spec=spec,
+        dataset=mixed_dataset,
+    )
+
+    assert first.metrics == second.metrics
