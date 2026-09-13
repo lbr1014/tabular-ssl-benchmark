@@ -25,6 +25,7 @@ from evaluation.metrics import (
 from models.base import BenchmarkClassifier
 from config.matrix import ExperimentSpec
 from models.factory import create_classifier
+from collections.abc import Mapping
 
 def run_supervised_experiment(
     *,
@@ -205,3 +206,49 @@ def run_experiment_spec(
         seed=spec.seed,
         test_size=spec.test_size,
     )
+    
+def run_benchmark_matrix(
+    matrix: tuple[ExperimentSpec, ...],
+    datasets: Mapping[str, TabularDataset],
+) -> tuple[ExperimentResult, ...]:
+    """Execute all experiment specifications in a benchmark matrix.
+
+    Args:
+        matrix (tuple[ExperimentSpec, ...]): Ordered experiment
+            specifications to execute.
+        datasets (Mapping[str, TabularDataset]): Preloaded datasets keyed
+            by dataset name.
+
+    Returns:
+        tuple[ExperimentResult, ...]: Experiment results in the same order
+        as the input matrix.
+
+    Raises:
+        TypeError: If matrix is not a tuple.
+        ValueError: If an experiment references a dataset that has not
+            been provided.
+    """
+    if not isinstance(matrix, tuple):
+        raise TypeError(
+            "matrix must be a tuple of ExperimentSpec instances."
+        )
+
+    results = []
+
+    for spec in matrix:
+        try:
+            dataset = datasets[spec.dataset.name]
+        except KeyError as exc:
+            raise ValueError(
+                "Dataset required by experiment specification "
+                f"is not loaded: {spec.dataset.name!r}."
+            ) from exc
+
+        result = run_experiment_spec(
+            spec=spec,
+            dataset=dataset,
+        )
+
+        results.append(result)
+
+    return tuple(results)
