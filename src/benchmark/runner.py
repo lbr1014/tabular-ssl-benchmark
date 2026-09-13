@@ -23,6 +23,8 @@ from evaluation.metrics import (
     compute_probabilistic_metrics,
 )
 from models.base import BenchmarkClassifier
+from config.matrix import ExperimentSpec
+from models.factory import create_classifier
 
 def run_supervised_experiment(
     *,
@@ -161,4 +163,45 @@ def run_supervised_experiment(
             "dataset_source_id": dataset.source_id,
             "dataset_source_version": dataset.source_version,
         },
+    )
+    
+def run_experiment_spec(
+    spec: ExperimentSpec,
+    dataset: TabularDataset,
+) -> ExperimentResult:
+    """Execute one experiment specification on a loaded dataset.
+    The classifier is created from the model identifier and experiment
+    seed stored in the specification. The experiment is then delegated
+    to the supervised experiment runner.
+
+    Args:
+        spec (ExperimentSpec): Experimental specification to execute.
+        dataset (TabularDataset): Loaded tabular dataset used by the
+            experiment.
+
+    Returns:
+        ExperimentResult: Result produced by the supervised experiment.
+
+    Raises:
+        ValueError: If the loaded dataset does not match the dataset
+            requested by the experiment specification.
+    """
+    if dataset.name != spec.dataset.name:
+        raise ValueError(
+            "Loaded dataset does not match experiment specification: "
+            f"expected {spec.dataset.name!r}, "
+            f"received {dataset.name!r}."
+        )
+
+    model = create_classifier(
+        spec.model_name,
+        seed=spec.seed,
+    )
+
+    return run_supervised_experiment(
+        dataset=dataset,
+        model=model,
+        label_fraction=spec.label_fraction,
+        seed=spec.seed,
+        test_size=spec.test_size,
     )
