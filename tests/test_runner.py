@@ -3,7 +3,7 @@
 import pytest
 
 from benchmark.experiment import ExperimentResult
-from benchmark.runner import run_experiment_spec, run_supervised_experiment
+from benchmark.runner import run_benchmark_matrix, run_experiment_spec, run_supervised_experiment
 from config.matrix import ExperimentSpec
 from config.models import DatasetConfig
 from models.sklearn_models import (
@@ -276,3 +276,138 @@ def test_run_experiment_spec_is_reproducible(
     )
 
     assert first.metrics == second.metrics
+    
+def test_run_benchmark_matrix_executes_all_specs(
+    mixed_dataset,
+):
+    """Every matrix specification should produce one result."""
+    dataset_config = DatasetConfig(
+        name=mixed_dataset.name,
+        openml_id=1,
+    )
+
+    matrix = (
+        ExperimentSpec(
+            dataset=dataset_config,
+            model_name="logistic_regression",
+            label_fraction=0.5,
+            seed=1,
+            test_size=0.2,
+        ),
+        ExperimentSpec(
+            dataset=dataset_config,
+            model_name="random_forest",
+            label_fraction=0.5,
+            seed=1,
+            test_size=0.2,
+        ),
+    )
+
+    results = run_benchmark_matrix(
+        matrix=matrix,
+        datasets={
+            mixed_dataset.name: mixed_dataset,
+        },
+    )
+
+    assert len(results) == len(matrix)
+
+    assert all(
+        isinstance(result, ExperimentResult)
+        for result in results
+    )
+    
+def test_run_benchmark_matrix_preserves_order(
+    mixed_dataset,
+):
+    """Matrix results should preserve specification order."""
+    dataset_config = DatasetConfig(
+        name=mixed_dataset.name,
+        openml_id=1,
+    )
+
+    matrix = (
+        ExperimentSpec(
+            dataset=dataset_config,
+            model_name="logistic_regression",
+            label_fraction=0.5,
+            seed=1,
+            test_size=0.2,
+        ),
+        ExperimentSpec(
+            dataset=dataset_config,
+            model_name="random_forest",
+            label_fraction=0.5,
+            seed=2,
+            test_size=0.2,
+        ),
+    )
+
+    results = run_benchmark_matrix(
+        matrix=matrix,
+        datasets={
+            mixed_dataset.name: mixed_dataset,
+        },
+    )
+
+    assert [
+        result.config.model_name
+        for result in results
+    ] == [
+        spec.model_name
+        for spec in matrix
+    ]
+
+    assert [
+        result.config.seed
+        for result in results
+    ] == [
+        spec.seed
+        for spec in matrix
+    ]
+    
+def test_run_benchmark_matrix_rejects_missing_dataset(
+    mixed_dataset,
+):
+    """Matrix execution should fail when a dataset is not loaded."""
+    spec = ExperimentSpec(
+        dataset=DatasetConfig(
+            name="missing_dataset",
+            openml_id=1,
+        ),
+        model_name="logistic_regression",
+        label_fraction=0.5,
+        seed=42,
+        test_size=0.2,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="is not loaded",
+    ):
+        run_benchmark_matrix(
+            matrix=(spec,),
+            datasets={
+                mixed_dataset.name: mixed_dataset,
+            },
+        )
+        
+def test_run_benchmark_matrix_accepts_empty_matrix():
+    """An empty experiment matrix should produce no results."""
+    results = run_benchmark_matrix(
+        matrix=(),
+        datasets={},
+    )
+
+    assert results == ()
+    
+def test_run_benchmark_matrix_rejects_non_tuple_matrix():
+    """Matrix execution should require an immutable tuple."""
+    with pytest.raises(
+        TypeError,
+        match="matrix must be a tuple",
+    ):
+        run_benchmark_matrix(
+            matrix=[],
+            datasets={},
+        )
