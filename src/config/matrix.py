@@ -16,6 +16,7 @@ class ExperimentSpec:
     """Describe one dataset-level experimental specification."""
 
     dataset: DatasetConfig
+    model_name: str
     label_fraction: float
     seed: int
     test_size: float
@@ -29,6 +30,7 @@ class ExperimentSpec:
         """
         return (
             f"{self.dataset.name}"
+            f"__model-{self.model_name}"
             f"__lf-{self.label_fraction:g}"
             f"__seed-{self.seed}"
         )
@@ -66,6 +68,7 @@ def generate_experiment_matrix(
 
     combinations = product(
         enabled_datasets,
+        benchmark.models,
         benchmark.label_fractions,
         benchmark.seeds,
     )
@@ -73,11 +76,12 @@ def generate_experiment_matrix(
     return tuple(
         ExperimentSpec(
             dataset=dataset,
+            model_name=model_name,
             label_fraction=label_fraction,
             seed=seed,
             test_size=benchmark.test_size,
         )
-        for dataset, label_fraction, seed in combinations
+        for dataset, model_name, label_fraction, seed in combinations
     )
 
 

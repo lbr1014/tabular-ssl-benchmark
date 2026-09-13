@@ -71,6 +71,7 @@ def load_benchmark_config(
     raw_config = _load_yaml_mapping(path)
 
     required = {
+        "models",
         "label_fractions",
         "seeds",
     }
@@ -84,8 +85,14 @@ def load_benchmark_config(
         context="benchmark configuration",
     )
 
+    models = raw_config["models"]
     label_fractions = raw_config["label_fractions"]
     seeds = raw_config["seeds"]
+    
+    if not isinstance(models, list):
+        raise ValueError(
+            "'models' must be a list."
+        )
 
     if not isinstance(label_fractions, list):
         raise ValueError(
@@ -98,6 +105,7 @@ def load_benchmark_config(
         )
 
     return BenchmarkConfig(
+        models=tuple(models),
         label_fractions=tuple(label_fractions),
         seeds=tuple(seeds),
         test_size=raw_config.get("test_size", 0.2),

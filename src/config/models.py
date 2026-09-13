@@ -39,15 +39,43 @@ class DatasetConfig:
 class BenchmarkConfig:
     """Configuration describing the benchmark experiment grid."""
 
+    models: tuple[str, ...]
     label_fractions: tuple[float, ...]
     seeds: tuple[int, ...]
     test_size: float = 0.2
 
     def __post_init__(self) -> None:
         """Validate benchmark-wide experimental settings."""
+        self._validate_models()
         self._validate_label_fractions()
         self._validate_seeds()
         self._validate_test_size()
+        
+    def _validate_models(self) -> None:
+        """Validate benchmark model identifiers."""
+        if not isinstance(self.models, tuple):
+            raise TypeError("models must be a tuple.")
+
+        if not self.models:
+            raise ValueError(
+                "models must contain at least one model."
+            )
+
+        for model_name in self.models:
+            if not isinstance(model_name, str):
+                raise TypeError(
+                    "models must contain string values."
+                )
+
+            if not model_name.strip():
+                raise ValueError(
+                    "models must not contain empty names."
+                )
+
+        if len(set(self.models)) != len(self.models):
+            raise ValueError(
+                "models must not contain duplicate values."
+            )
 
     def _validate_label_fractions(self) -> None:
         """Validate labelled training fractions."""
