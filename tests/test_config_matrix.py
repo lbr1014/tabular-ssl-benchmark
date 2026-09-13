@@ -7,7 +7,7 @@ from config.matrix import (
     generate_experiment_matrix,
 )
 from config.models import BenchmarkConfig, DatasetConfig
-
+from itertools import product
 
 @pytest.fixture
 def datasets() -> tuple[DatasetConfig, ...]:
@@ -30,6 +30,10 @@ def datasets() -> tuple[DatasetConfig, ...]:
 def benchmark_config() -> BenchmarkConfig:
     """Return a small benchmark configuration used by matrix tests."""
     return BenchmarkConfig(
+        models=(
+            "logistic_regression",
+            "random_forest",
+        ),
         label_fractions=(0.1, 0.5),
         seeds=(1, 2, 3),
         test_size=0.2,
@@ -46,7 +50,7 @@ def test_matrix_has_expected_number_of_experiments(
         benchmark=benchmark_config,
     )
 
-    assert len(matrix) == 2 * 2 * 3
+    assert len(matrix) == 2 * 2 * 2 * 3
 
 
 def test_matrix_contains_experiment_specs(
@@ -124,7 +128,7 @@ def test_matrix_excludes_disabled_datasets(
         benchmark=benchmark_config,
     )
 
-    assert len(matrix) == 6
+    assert len(matrix) == 12
 
     assert {
         spec.dataset.name
@@ -173,12 +177,13 @@ def test_spec_id_is_deterministic():
             name="iris",
             openml_id=61,
         ),
+        model_name="random_forest",
         label_fraction=0.1,
         seed=42,
         test_size=0.2,
     )
 
-    assert spec.spec_id == "iris__lf-0.1__seed-42"
+    assert spec.spec_id == "iris__model-random_forest__lf-0.1__seed-42"
 
 
 def test_matrix_rejects_no_enabled_datasets(
@@ -218,3 +223,34 @@ def test_matrix_spec_ids_are_unique(
     ]
 
     assert len(spec_ids) == len(set(spec_ids))
+    
+def test_matrix_contains_all_combinations(
+    datasets,
+    benchmark_config,
+):
+    """The matrix should contain every requested configuration."""
+    matrix = generate_experiment_matrix(
+        datasets=datasets,
+        benchmark=benchmark_config,
+    )
+
+    combinations = {
+        (
+            spec.dataset.name,
+            spec.model_name,
+            spec.label_fraction,
+            spec.seed,
+        )
+        for spec in matrix
+    }
+
+    expected = set(
+        product(
+            ("iris", "adult"),
+            benchmark_config.models,
+            benchmark_config.label_fractions,
+            benchmark_config.seeds,
+        )
+    )
+
+    assert combinations == expected
