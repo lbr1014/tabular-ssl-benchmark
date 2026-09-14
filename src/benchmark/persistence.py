@@ -9,6 +9,9 @@ from benchmark.experiment import ExperimentResult
 from benchmark.serialization import serialize_experiment_result
 from benchmark.metadata import BenchmarkRunMetadata
 
+from config.models import BenchmarkConfig, DatasetConfig
+from config.serialization import serialize_benchmark_config
+
 def save_benchmark_results(
     results: Iterable[ExperimentResult],
     output_dir: str | Path,
@@ -159,3 +162,47 @@ def save_run_metadata(
         )
 
     return metadata_path
+
+def save_benchmark_config(
+    *,
+    datasets: tuple[DatasetConfig, ...],
+    benchmark: BenchmarkConfig,
+    output_dir: str | Path,
+) -> Path:
+    """Persist the effective benchmark configuration as JSON.
+
+    Args:
+        datasets (tuple[DatasetConfig, ...]): Dataset configurations
+            used by the benchmark.
+        benchmark (BenchmarkConfig): Benchmark-wide configuration.
+        output_dir (str | Path): Directory where the configuration
+            file is written.
+
+    Returns:
+        Path: Path to the generated configuration JSON file.
+    """
+    output_path = Path(output_dir)
+    output_path.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    config_path = output_path / "config.json"
+
+    config = serialize_benchmark_config(
+        datasets=datasets,
+        benchmark=benchmark,
+    )
+
+    with config_path.open(
+        "w",
+        encoding="utf-8",
+    ) as file:
+        json.dump(
+            config,
+            file,
+            indent=2,
+            ensure_ascii=False,
+        )
+
+    return config_path
