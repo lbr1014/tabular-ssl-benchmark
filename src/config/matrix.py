@@ -32,6 +32,7 @@ class ExperimentSpec:
             f"{self.dataset.name}"
             f"__model-{self.model_name}"
             f"__lf-{self.label_fraction:g}"
+            f"__test-{self.test_size:g}"
             f"__seed-{self.seed}"
         )
 
