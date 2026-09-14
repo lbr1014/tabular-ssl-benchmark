@@ -7,8 +7,10 @@ import json
 import pytest
 
 from benchmark.experiment import ExperimentConfig, ExperimentResult
-from benchmark.persistence import save_benchmark_results, save_run_metadata
+from benchmark.persistence import save_benchmark_config, save_benchmark_results, save_run_metadata
 from benchmark.metadata import BenchmarkRunMetadata
+from config.models import BenchmarkConfig, DatasetConfig
+from config.serialization import serialize_benchmark_config
 
 def _create_result(
     *,
@@ -244,3 +246,97 @@ def test_save_run_metadata_supports_missing_git_commit(
         stored_metadata = json.load(file)
 
     assert stored_metadata["git_commit"] is None
+    
+def test_save_benchmark_config_creates_config_file(
+    tmp_path,
+):
+    """Benchmark configuration persistence should create a JSON file."""
+    datasets = (
+        DatasetConfig(
+            name="iris",
+            openml_id=61,
+        ),
+    )
+
+    benchmark = BenchmarkConfig(
+        models=("logistic_regression",),
+        label_fractions=(0.1,),
+        seeds=(1,),
+        test_size=0.2,
+    )
+
+    config_path = save_benchmark_config(
+        datasets=datasets,
+        benchmark=benchmark,
+        output_dir=tmp_path,
+    )
+
+    assert config_path.exists()
+    assert config_path.name == "config.json"
+    
+def test_save_benchmark_config_preserves_effective_configuration(
+    tmp_path,
+):
+    """Persisted configuration should match the effective configuration."""
+    datasets = (
+        DatasetConfig(
+            name="iris",
+            openml_id=61,
+        ),
+    )
+
+    benchmark = BenchmarkConfig(
+        models=("logistic_regression",),
+        label_fractions=(0.1, 0.5),
+        seeds=(1, 2),
+        test_size=0.2,
+    )
+
+    config_path = save_benchmark_config(
+        datasets=datasets,
+        benchmark=benchmark,
+        output_dir=tmp_path,
+    )
+
+    with config_path.open(
+        "r",
+        encoding="utf-8",
+    ) as file:
+        stored_config = json.load(file)
+
+    assert stored_config == serialize_benchmark_config(
+        datasets=datasets,
+        benchmark=benchmark,
+    )
+    
+def test_save_benchmark_config_creates_output_directory(
+    tmp_path,
+):
+    """Configuration persistence should create missing directories."""
+    output_dir = (
+        tmp_path
+        / "results"
+        / "benchmark-run"
+    )
+
+    datasets = (
+        DatasetConfig(
+            name="iris",
+            openml_id=61,
+        ),
+    )
+
+    benchmark = BenchmarkConfig(
+        models=("logistic_regression",),
+        label_fractions=(0.1,),
+        seeds=(1,),
+    )
+
+    config_path = save_benchmark_config(
+        datasets=datasets,
+        benchmark=benchmark,
+        output_dir=output_dir,
+    )
+
+    assert output_dir.exists()
+    assert config_path.exists()
