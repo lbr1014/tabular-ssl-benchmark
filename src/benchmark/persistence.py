@@ -7,6 +7,7 @@ from typing import Any, Iterable
 
 from benchmark.experiment import ExperimentResult
 from benchmark.serialization import serialize_experiment_result
+from benchmark.metadata import BenchmarkRunMetadata
 
 def save_benchmark_results(
     results: Iterable[ExperimentResult],
@@ -122,3 +123,39 @@ def _validate_record_schema(
                 "All experiment results must share the same "
                 f"serialized fields; mismatch at index {index}."
             )
+            
+def save_run_metadata(
+    metadata: BenchmarkRunMetadata,
+    output_dir: str | Path,
+) -> Path:
+    """Persist benchmark run metadata as JSON.
+
+    Args:
+        metadata (BenchmarkRunMetadata): Metadata describing the
+            benchmark execution.
+        output_dir (str | Path): Directory where the metadata file
+            is written.
+
+    Returns:
+        Path: Path to the generated metadata JSON file.
+    """
+    output_path = Path(output_dir)
+    output_path.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    metadata_path = output_path / "metadata.json"
+
+    with metadata_path.open(
+        "w",
+        encoding="utf-8",
+    ) as file:
+        json.dump(
+            metadata.to_dict(),
+            file,
+            indent=2,
+            ensure_ascii=False,
+        )
+
+    return metadata_path
