@@ -38,6 +38,15 @@ def benchmark_config() -> BenchmarkConfig:
         seeds=(1, 2, 3),
         test_size=0.2,
     )
+    
+@pytest.fixture
+def dataset_config() -> DatasetConfig:
+    """Return a small benchmark configuration used by matrix tests."""
+    return DatasetConfig(
+        name="iris",
+        openml_id=61,
+        enabled=True,
+    )
 
 
 def test_matrix_has_expected_number_of_experiments(
@@ -68,42 +77,6 @@ def test_matrix_contains_experiment_specs(
         for spec in matrix
     )
 
-
-def test_matrix_contains_all_combinations(
-    datasets,
-    benchmark_config,
-):
-    """The matrix should contain every requested configuration."""
-    matrix = generate_experiment_matrix(
-        datasets=datasets,
-        benchmark=benchmark_config,
-    )
-
-    combinations = {
-        (
-            spec.dataset.name,
-            spec.label_fraction,
-            spec.seed,
-        )
-        for spec in matrix
-    }
-
-    expected = {
-        ("iris", 0.1, 1),
-        ("iris", 0.1, 2),
-        ("iris", 0.1, 3),
-        ("iris", 0.5, 1),
-        ("iris", 0.5, 2),
-        ("iris", 0.5, 3),
-        ("adult", 0.1, 1),
-        ("adult", 0.1, 2),
-        ("adult", 0.1, 3),
-        ("adult", 0.5, 1),
-        ("adult", 0.5, 2),
-        ("adult", 0.5, 3),
-    }
-
-    assert combinations == expected
 
 
 def test_matrix_excludes_disabled_datasets(
@@ -183,7 +156,7 @@ def test_spec_id_is_deterministic():
         test_size=0.2,
     )
 
-    assert spec.spec_id == "iris__model-random_forest__lf-0.1__seed-42"
+    assert spec.spec_id == "iris__model-random_forest__lf-0.1__test-0.2__seed-42"
 
 
 def test_matrix_rejects_no_enabled_datasets(
@@ -254,3 +227,25 @@ def test_matrix_contains_all_combinations(
     )
 
     assert combinations == expected
+    
+def test_experiment_spec_id_changes_with_test_size(
+    dataset_config,
+):
+    """Different test sizes should produce different specification IDs."""
+    first = ExperimentSpec(
+        dataset=dataset_config,
+        model_name="logistic_regression",
+        label_fraction=0.1,
+        seed=42,
+        test_size=0.2,
+    )
+
+    second = ExperimentSpec(
+        dataset=dataset_config,
+        model_name="logistic_regression",
+        label_fraction=0.1,
+        seed=42,
+        test_size=0.3,
+    )
+
+    assert first.spec_id != second.spec_id

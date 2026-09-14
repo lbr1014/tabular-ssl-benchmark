@@ -76,6 +76,7 @@ test_size: 0.25
             f"iris"
             f"__model-{model_name}"
             f"__lf-{label_fraction:g}"
+            f"__test-{benchmark.test_size:g}"
             f"__seed-{seed}"
         )
         for model_name in benchmark.models
