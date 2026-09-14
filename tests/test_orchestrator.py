@@ -1,5 +1,5 @@
-from benchmark.orchestrator import _load_enabled_datasets
-from config.models import DatasetConfig
+from benchmark.orchestrator import _load_enabled_datasets, run_benchmark
+from config.models import BenchmarkConfig, DatasetConfig
 
 
 def test_load_enabled_datasets_skips_disabled_datasets(
@@ -37,3 +37,166 @@ def test_load_enabled_datasets_skips_disabled_datasets(
     assert set(loaded) == {
         mixed_dataset.name,
     }
+    
+def test_run_benchmark_executes_complete_matrix(
+    monkeypatch,
+    mixed_dataset,
+):
+    """A benchmark should execute every generated experiment."""
+    monkeypatch.setattr(
+        "benchmark.orchestrator.load_openml_dataset",
+        lambda data_id: mixed_dataset,
+    )
+
+    datasets = (
+        DatasetConfig(
+            name=mixed_dataset.name,
+            openml_id=61,
+            enabled=True,
+        ),
+    )
+
+    benchmark = BenchmarkConfig(
+        models=(
+            "logistic_regression",
+            "random_forest",
+        ),
+        label_fractions=(
+            0.5,
+            1.0,
+        ),
+        seeds=(
+            1,
+            2,
+        ),
+        test_size=0.2,
+    )
+
+    results = run_benchmark(
+        datasets=datasets,
+        benchmark=benchmark,
+    )
+
+    expected_count = (
+        len(benchmark.models)
+        * len(benchmark.label_fractions)
+        * len(benchmark.seeds)
+    )
+
+    assert len(results) == expected_count
+    
+    actual_combinations = {
+        (
+            result.config.model_name,
+            result.config.label_fraction,
+            result.config.seed,
+        )
+        for result in results
+    }
+
+    expected_combinations = {
+        (
+            model_name,
+            label_fraction,
+            seed,
+        )
+        for model_name in benchmark.models
+        for label_fraction in benchmark.label_fractions
+        for seed in benchmark.seeds
+    }
+
+    assert actual_combinations == expected_combinations
+    
+def test_run_benchmark_loads_each_dataset_once(
+    monkeypatch,
+    mixed_dataset,
+):
+    """A dataset should be loaded once regardless of experiment count."""
+    requested_ids = []
+
+    def fake_loader(data_id):
+        requested_ids.append(data_id)
+        return mixed_dataset
+
+    monkeypatch.setattr(
+        "benchmark.orchestrator.load_openml_dataset",
+        fake_loader,
+    )
+
+    datasets = (
+        DatasetConfig(
+            name=mixed_dataset.name,
+            openml_id=61,
+            enabled=True,
+        ),
+    )
+
+    benchmark = BenchmarkConfig(
+        models=(
+            "logistic_regression",
+            "random_forest",
+        ),
+        label_fractions=(
+            0.1,
+            0.5,
+            1.0,
+        ),
+        seeds=(
+            1,
+            2,
+            3,
+        ),
+        test_size=0.2,
+    )
+
+    results = run_benchmark(
+        datasets=datasets,
+        benchmark=benchmark,
+    )
+
+    assert len(results) == 18
+    assert requested_ids == [61]
+    
+def test_run_benchmark_is_reproducible(
+    monkeypatch,
+    mixed_dataset,
+):
+    """Equal benchmark configurations should reproduce metric results."""
+    monkeypatch.setattr(
+        "benchmark.orchestrator.load_openml_dataset",
+        lambda data_id: mixed_dataset,
+    )
+
+    datasets = (
+        DatasetConfig(
+            name=mixed_dataset.name,
+            openml_id=61,
+        ),
+    )
+
+    benchmark = BenchmarkConfig(
+        models=("random_forest",),
+        label_fractions=(0.5,),
+        seeds=(42,),
+        test_size=0.2,
+    )
+
+    first = run_benchmark(
+        datasets=datasets,
+        benchmark=benchmark,
+    )
+
+    second = run_benchmark(
+        datasets=datasets,
+        benchmark=benchmark,
+    )
+
+    assert len(first) == len(second)
+
+    for first_result, second_result in zip(
+        first,
+        second,
+        strict=True,
+    ):
+        assert first_result.config == second_result.config
+        assert first_result.metrics == second_result.metrics
