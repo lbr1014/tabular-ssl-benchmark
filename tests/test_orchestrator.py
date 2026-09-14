@@ -1,3 +1,7 @@
+"""Orchestration tests for benchmark execution.
+This module tests the orchestration of benchmark execution, 
+including dataset loading, experiment generation, and result collection."""
+
 from benchmark.orchestrator import _load_enabled_datasets, run_benchmark
 from config.models import BenchmarkConfig, DatasetConfig
 

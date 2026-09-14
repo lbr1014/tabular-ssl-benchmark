@@ -1,3 +1,8 @@
+"""Serialization tests for experiment results.
+This module tests the serialization of experiment results into a flat dictionary format,
+ensuring that configuration, metrics, execution data, and metadata are correctly preserved 
+and that field collisions are properly handled."""
+
 from dataclasses import replace
 
 import pytest
