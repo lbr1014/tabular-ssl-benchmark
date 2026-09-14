@@ -9,7 +9,6 @@ def serialize_experiment_result(
     result: ExperimentResult,
 ) -> dict[str, Any]:
     """Convert an experiment result into a flat serializable record.
-
     Configuration, metrics, execution times, sample counts, and dataset
     provenance are combined into a single record suitable for tabular
     persistence and later analysis.
@@ -55,7 +54,14 @@ def _merge_without_collisions(
     *,
     source: str,
 ) -> None:
-    """Merge values into a record without overwriting existing keys."""
+    """Merge values into a record without overwriting existing keys.
+    
+    Args:
+        target (dict[str, Any]): The target dictionary to update.
+        values (dict[str, Any]): The values to merge into the target.
+        source (str): A descriptive name for the source of the values,
+            used in error messages.
+    """
     collisions = target.keys() & values.keys()
 
     if collisions:
