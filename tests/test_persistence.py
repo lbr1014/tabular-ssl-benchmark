@@ -7,8 +7,8 @@ import json
 import pytest
 
 from benchmark.experiment import ExperimentConfig, ExperimentResult
-from benchmark.persistence import save_benchmark_results
-
+from benchmark.persistence import save_benchmark_results, save_run_metadata
+from benchmark.metadata import BenchmarkRunMetadata
 
 def _create_result(
     *,
@@ -41,6 +41,19 @@ def _create_result(
             "dataset_source_id": 61,
             "dataset_source_version": 1,
         },
+    )
+    
+def _create_run_metadata(
+    *,
+    git_commit: str | None = "abc123",
+) -> BenchmarkRunMetadata:
+    """Create representative metadata for persistence tests."""
+    return BenchmarkRunMetadata(
+        created_at="2026-09-14T10:00:00+00:00",
+        python_version="3.12.0",
+        platform="test-platform",
+        git_commit=git_commit,
+        n_experiments=10,
     )
     
 def test_save_benchmark_results_creates_output_files(
@@ -157,3 +170,77 @@ def test_save_benchmark_results_rejects_inconsistent_schema(
     assert not (tmp_path / "results.jsonl").exists()
     assert not (tmp_path / "results.csv").exists()
         
+def test_save_run_metadata_creates_metadata_file(
+    tmp_path,
+):
+    """Run metadata persistence should create a JSON file."""
+    metadata = _create_run_metadata()
+
+    metadata_path = save_run_metadata(
+        metadata,
+        tmp_path,
+    )
+
+    assert metadata_path.exists()
+    assert metadata_path.name == "metadata.json"
+    
+    
+def test_save_run_metadata_writes_metadata_content(
+    tmp_path,
+):
+    """Persisted metadata should preserve all run information."""
+    metadata = _create_run_metadata()
+
+    metadata_path = save_run_metadata(
+        metadata,
+        tmp_path,
+    )
+
+    with metadata_path.open(
+        "r",
+        encoding="utf-8",
+    ) as file:
+        stored_metadata = json.load(file)
+
+    assert stored_metadata == metadata.to_dict()
+    
+def test_save_run_metadata_creates_output_directory(
+    tmp_path,
+):
+    """Run metadata persistence should create missing directories."""
+    output_dir = (
+        tmp_path
+        / "results"
+        / "benchmark-run"
+    )
+
+    metadata = _create_run_metadata()
+
+    metadata_path = save_run_metadata(
+        metadata,
+        output_dir,
+    )
+
+    assert output_dir.exists()
+    assert metadata_path.exists()
+    
+def test_save_run_metadata_supports_missing_git_commit(
+    tmp_path,
+):
+    """Metadata persistence should support unavailable Git information."""
+    metadata = _create_run_metadata(
+        git_commit=None,
+    )
+
+    metadata_path = save_run_metadata(
+        metadata,
+        tmp_path,
+    )
+
+    with metadata_path.open(
+        "r",
+        encoding="utf-8",
+    ) as file:
+        stored_metadata = json.load(file)
+
+    assert stored_metadata["git_commit"] is None
