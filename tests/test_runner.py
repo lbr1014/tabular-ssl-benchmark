@@ -3,13 +3,14 @@
 import pytest
 
 from benchmark.experiment import ExperimentResult
-from benchmark.runner import run_benchmark_matrix, run_experiment_spec, run_supervised_experiment
+from benchmark.runner import run_benchmark_matrix, run_experiment, run_experiment_spec, run_supervised_experiment
 from config.matrix import ExperimentSpec
 from config.models import DatasetConfig
 from models.sklearn_models import (
     create_logistic_regression,
     create_random_forest,
 )
+from ssl_methods.supervised import SupervisedMethod
 
 def test_supervised_runner_returns_experiment_result(
     mixed_dataset,
@@ -411,3 +412,71 @@ def test_run_benchmark_matrix_rejects_non_tuple_matrix():
             matrix=[],
             datasets={},
         )
+        
+def test_generic_runner_records_ssl_method(
+    mixed_dataset,
+):
+    """Runner should record the executed learning strategy."""
+    model = create_logistic_regression(seed=42)
+    method = SupervisedMethod()
+
+    result = run_experiment(
+        dataset=mixed_dataset,
+        model=model,
+        ssl_method=method,
+        label_fraction=0.5,
+        test_size=0.2,
+        seed=42,
+    )
+
+    assert result.config.ssl_method == "supervised"
+    
+def test_generic_supervised_runner_matches_legacy_runner(
+    mixed_dataset,
+):
+    """Generic supervised execution should preserve previous results."""
+    legacy_model = create_logistic_regression(seed=42)
+    generic_model = create_logistic_regression(seed=42)
+
+    legacy_result = run_supervised_experiment(
+        dataset=mixed_dataset,
+        model=legacy_model,
+        label_fraction=0.5,
+        test_size=0.2,
+        seed=42,
+    )
+
+    generic_result = run_experiment(
+        dataset=mixed_dataset,
+        model=generic_model,
+        ssl_method=SupervisedMethod(),
+        label_fraction=0.5,
+        test_size=0.2,
+        seed=42,
+    )
+
+    assert generic_result.metrics == legacy_result.metrics
+    assert generic_result.n_train == legacy_result.n_train
+    assert generic_result.n_labeled == legacy_result.n_labeled
+    assert generic_result.n_unlabeled == legacy_result.n_unlabeled
+    assert generic_result.n_test == legacy_result.n_test
+    
+def test_generic_runner_supports_empty_unlabeled_partition(
+    mixed_dataset,
+):
+    """Generic runner should support experiments with no unlabeled samples."""
+    model = create_logistic_regression(seed=42)
+    method = SupervisedMethod()
+
+    result = run_experiment(
+        dataset=mixed_dataset,
+        model=model,
+        ssl_method=method,
+        label_fraction=1.0,
+        test_size=0.2,
+        seed=42,
+    )
+
+    assert result.n_unlabeled == 0
+    assert result.n_labeled == result.n_train
+    assert result.config.ssl_method == "supervised"
