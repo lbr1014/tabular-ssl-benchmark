@@ -45,8 +45,7 @@ The test set remains isolated from model training and is used exclusively for fi
 tabular-ssl-benchmark/
 ├── configs/
 │   ├── benchmark.yaml  # Global experimental settings for the benchmark
-│   ├── datasets.yaml   # Dataset catalogue used by the benchmark
-│   └── models.yaml    
+│   └── datasets.yaml   # Dataset catalogue used by the benchmark   
 ├── src/
 │   ├── benchmark/      # Experiment execution, orchestration and persistence
 │   ├── config/         # Validated configuration and experiment matrices
