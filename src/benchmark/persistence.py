@@ -4,6 +4,7 @@ import csv
 import json
 from pathlib import Path
 from typing import Any, Iterable
+from dataclasses import dataclass
 
 from benchmark.experiment import ExperimentResult
 from benchmark.serialization import serialize_experiment_result
@@ -11,6 +12,15 @@ from benchmark.metadata import BenchmarkRunMetadata
 
 from config.models import BenchmarkConfig, DatasetConfig
 from config.serialization import serialize_benchmark_config
+
+@dataclass(frozen=True)
+class BenchmarkRunArtifacts:
+    """File artifacts produced by a persisted benchmark run."""
+
+    results_jsonl: Path
+    results_csv: Path
+    metadata_json: Path
+    config_json: Path
 
 def save_benchmark_results(
     results: Iterable[ExperimentResult],
@@ -206,3 +216,54 @@ def save_benchmark_config(
         )
 
     return config_path
+
+def save_benchmark_run(
+    *,
+    results: tuple[ExperimentResult, ...],
+    datasets: tuple[DatasetConfig, ...],
+    benchmark: BenchmarkConfig,
+    metadata: BenchmarkRunMetadata,
+    output_dir: str | Path,
+) -> BenchmarkRunArtifacts:
+    """Persist all artifacts associated with a benchmark run.
+
+    Args:
+        results (tuple[ExperimentResult, ...]): Experiment results
+            produced by the benchmark.
+        datasets (tuple[DatasetConfig, ...]): Dataset configurations
+            used by the benchmark.
+        benchmark (BenchmarkConfig): Effective benchmark configuration.
+        metadata (BenchmarkRunMetadata): Metadata describing the run.
+        output_dir (str | Path): Directory where run artifacts are stored.
+
+    Returns:
+        BenchmarkRunArtifacts: Paths to all persisted run artifacts.
+    """
+    if metadata.n_experiments != len(results):
+        raise ValueError(
+            "Run metadata experiment count does not match "
+            "the number of benchmark results."
+        )
+        
+    jsonl_path, csv_path = save_benchmark_results(
+        results,
+        output_dir,
+    )
+
+    metadata_path = save_run_metadata(
+        metadata,
+        output_dir,
+    )
+
+    config_path = save_benchmark_config(
+        datasets=datasets,
+        benchmark=benchmark,
+        output_dir=output_dir,
+    )
+
+    return BenchmarkRunArtifacts(
+        results_jsonl=jsonl_path,
+        results_csv=csv_path,
+        metadata_json=metadata_path,
+        config_json=config_path,
+    )
