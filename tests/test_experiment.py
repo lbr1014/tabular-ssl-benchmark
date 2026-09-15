@@ -17,7 +17,7 @@ def test_experiment_id_supervised():
 
     assert (
         config.experiment_id
-        == "adult__tabpfn__supervised__lf-0.1__seed-42"
+        == "adult__tabpfn__supervised__lf-0.1__test-0.2__seed-42"
     )
 
 
@@ -33,7 +33,7 @@ def test_experiment_id_ssl():
 
     assert (
         config.experiment_id
-        == "adult__random_forest__self_training__lf-0.05__seed-1"
+        == "adult__random_forest__self_training__lf-0.05__test-0.2__seed-1"
     )
 
 
@@ -60,3 +60,25 @@ def test_invalid_test_size():
             seed=42,
             test_size=1.0,
         )
+        
+def test_experiment_id_changes_with_test_size():
+    """Different test sizes should produce different experiment identifiers."""
+    first = ExperimentConfig(
+        dataset_name="adult",
+        model_name="tabpfn",
+        ssl_method=None,
+        label_fraction=0.1,
+        seed=42,
+        test_size=0.2,
+    )
+
+    second = ExperimentConfig(
+        dataset_name="adult",
+        model_name="tabpfn",
+        ssl_method=None,
+        label_fraction=0.1,
+        seed=42,
+        test_size=0.3,
+    )
+
+    assert first.experiment_id != second.experiment_id

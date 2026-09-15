@@ -43,6 +43,7 @@ class ExperimentConfig:
             f"__{self.model_name}"
             f"__{ssl}"
             f"__lf-{self.label_fraction:g}"
+            f"__test-{self.test_size:g}"
             f"__seed-{self.seed}"
         )
             

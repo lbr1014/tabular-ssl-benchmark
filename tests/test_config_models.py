@@ -46,11 +46,13 @@ def test_dataset_config_rejects_empty_name(name):
 def test_valid_benchmark_config():
     """A valid benchmark configuration should preserve its values."""
     config = BenchmarkConfig(
+        models=("logistic_regression",),
         label_fractions=(0.05, 0.1, 0.2, 0.5),
         seeds=(1, 2, 3),
         test_size=0.2,
     )
 
+    assert config.models == ("logistic_regression",)
     assert config.label_fractions == (0.05, 0.1, 0.2, 0.5)
     assert config.seeds == (1, 2, 3)
     assert config.test_size == 0.2
@@ -69,6 +71,7 @@ def test_benchmark_config_rejects_invalid_label_fraction(
         match="label_fractions must contain values",
     ):
         BenchmarkConfig(
+            models=("logistic_regression",),
             label_fractions=(label_fraction,),
             seeds=(42,),
         )
@@ -81,6 +84,7 @@ def test_benchmark_config_rejects_duplicate_label_fractions():
         match="label_fractions must not contain duplicate",
     ):
         BenchmarkConfig(
+            models=("logistic_regression",),
             label_fractions=(0.1, 0.1),
             seeds=(42,),
         )
@@ -93,6 +97,7 @@ def test_benchmark_config_rejects_duplicate_seeds():
         match="seeds must not contain duplicate",
     ):
         BenchmarkConfig(
+            models=("logistic_regression",),
             label_fractions=(0.1,),
             seeds=(42, 42),
         )
@@ -105,10 +110,10 @@ def test_benchmark_config_rejects_negative_seed():
         match="seeds must contain non-negative",
     ):
         BenchmarkConfig(
+            models=("logistic_regression",),
             label_fractions=(0.1,),
             seeds=(-1,),
         )
-
 
 @pytest.mark.parametrize("test_size", [0.0, 1.0, -0.1, 1.1])
 def test_benchmark_config_rejects_invalid_test_size(test_size):
@@ -118,7 +123,65 @@ def test_benchmark_config_rejects_invalid_test_size(test_size):
         match="test_size must be in the interval",
     ):
         BenchmarkConfig(
+            models=("logistic_regression",),
             label_fractions=(0.1,),
             seeds=(42,),
             test_size=test_size,
+        )
+        
+def test_benchmark_config_rejects_empty_models():
+    """At least one benchmark model must be configured."""
+    with pytest.raises(
+        ValueError,
+        match="models must contain at least one model",
+    ):
+        BenchmarkConfig(
+            models=(),
+            label_fractions=(0.1,),
+            seeds=(42,),
+        )
+
+def test_benchmark_config_rejects_duplicate_models():
+    """Duplicate benchmark model identifiers should be rejected."""
+    with pytest.raises(
+        ValueError,
+        match="models must not contain duplicate values",
+    ):
+        BenchmarkConfig(
+            models=(
+                "logistic_regression",
+                "logistic_regression",
+            ),
+            label_fractions=(0.1,),
+            seeds=(42,),
+        )
+
+def test_benchmark_config_rejects_non_string_model():
+    """Benchmark model identifiers must be strings."""
+    with pytest.raises(
+        TypeError,
+        match="models must contain string values",
+    ):
+        BenchmarkConfig(
+            models=("logistic_regression", 42),
+            label_fractions=(0.1,),
+            seeds=(42,),
+        )
+        
+@pytest.mark.parametrize(
+    "model_name",
+    ["", "   "],
+)
+def test_benchmark_config_rejects_empty_model_name(
+    model_name,
+):
+    """Benchmark model identifiers must not be empty."""
+    with pytest.raises(
+        ValueError,
+        match="models must not contain empty names",
+    ):
+        BenchmarkConfig(
+            models=(model_name,),
+            label_fractions=(0.1,),
+            seeds=(42,),
         )

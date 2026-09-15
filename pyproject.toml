@@ -8,6 +8,17 @@ name = "tabular-ssl-benchmark"
 version = "0.1.0"
 description = "Reproducible benchmark for semi-supervised learning on tabular data"
 requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "pandas",
+    "scikit-learn",
+    "PyYAML",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
 
 
 [tool.setuptools.packages.find]
@@ -16,3 +27,6 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[project.scripts]
+tabular-ssl-benchmark = "benchmark.cli:main"

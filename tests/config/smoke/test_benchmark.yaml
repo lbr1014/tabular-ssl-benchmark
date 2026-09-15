@@ -1,0 +1,10 @@
+models:
+  - logistic_regression
+
+label_fractions:
+  - 0.5
+
+seeds:
+  - 42
+
+test_size: 0.2

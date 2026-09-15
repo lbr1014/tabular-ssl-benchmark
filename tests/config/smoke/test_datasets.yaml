@@ -1,0 +1,4 @@
+datasets:
+  - name: iris
+    openml_id: 61
+    enabled: true

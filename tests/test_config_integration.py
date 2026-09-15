@@ -32,6 +32,10 @@ datasets:
 
     benchmark_path.write_text(
         """
+models:
+  - logistic_regression
+  - random_forest
+  
 label_fractions:
   - 0.1
   - 0.5
@@ -53,16 +57,47 @@ test_size: 0.25
         benchmark=benchmark,
     )
 
-    assert len(matrix) == 4
+    enabled_datasets = sum(
+        dataset.enabled
+        for dataset in datasets
+    )
 
-    assert [spec.spec_id for spec in matrix] == [
-        "iris__lf-0.1__seed-1",
-        "iris__lf-0.1__seed-2",
-        "iris__lf-0.5__seed-1",
-        "iris__lf-0.5__seed-2",
+    expected_size = (
+        enabled_datasets
+        * len(benchmark.models)
+        * len(benchmark.label_fractions)
+        * len(benchmark.seeds)
+    )
+
+    assert len(matrix) == expected_size
+
+    expected_ids = [
+        (
+            f"iris"
+            f"__model-{model_name}"
+            f"__lf-{label_fraction:g}"
+            f"__test-{benchmark.test_size:g}"
+            f"__seed-{seed}"
+        )
+        for model_name in benchmark.models
+        for label_fraction in benchmark.label_fractions
+        for seed in benchmark.seeds
     ]
+
+    assert [
+        spec.spec_id
+        for spec in matrix
+    ] == expected_ids
 
     assert all(
         spec.test_size == 0.25
         for spec in matrix
     )
+    
+    assert {
+        spec.model_name
+        for spec in matrix
+    } == {
+        "logistic_regression",
+        "random_forest",
+    }

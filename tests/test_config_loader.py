@@ -9,6 +9,8 @@ from config.loader import (
 
 import pytest
 
+from config.models import BenchmarkConfig
+
 def test_load_dataset_configs(tmp_path: Path):
     """A valid dataset YAML file should produce typed configurations."""
     config_path = tmp_path / "datasets.yaml"
@@ -45,6 +47,9 @@ def test_load_benchmark_config(tmp_path: Path):
 
     config_path.write_text(
         """
+models:
+  - logistic_regression
+  - random_forest
 label_fractions:
   - 0.05
   - 0.10
@@ -67,6 +72,7 @@ test_size: 0.25
         0.10,
         0.20,
     )
+    assert config.models == ("logistic_regression", "random_forest")
     assert config.seeds == (1, 2, 3)
     assert config.test_size == 0.25
 
@@ -79,6 +85,9 @@ def test_benchmark_config_uses_default_test_size(
 
     config_path.write_text(
         """
+models:
+  - logistic_regression
+  
 label_fractions:
   - 0.10
 
@@ -185,6 +194,9 @@ def test_benchmark_loader_rejects_unknown_key(
 
     config_path.write_text(
         """
+models:
+    - logistic_regression
+    
 label_fractions:
   - 0.1
 
@@ -249,3 +261,31 @@ datasets:
         match="Unknown keys",
     ):
         load_dataset_configs(config_path)
+        
+def test_benchmark_config_rejects_empty_models():
+    """At least one benchmark model must be configured."""
+    with pytest.raises(
+        ValueError,
+        match="models must contain at least one model",
+    ):
+        BenchmarkConfig(
+            models=(),
+            label_fractions=(0.1,),
+            seeds=(42,),
+        )
+
+
+def test_benchmark_config_rejects_duplicate_models():
+    """Benchmark model identifiers must be unique."""
+    with pytest.raises(
+        ValueError,
+        match="models must not contain duplicate values",
+    ):
+        BenchmarkConfig(
+            models=(
+                "random_forest",
+                "random_forest",
+            ),
+            label_fractions=(0.1,),
+            seeds=(42,),
+        )
