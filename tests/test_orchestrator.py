@@ -2,7 +2,9 @@
 This module tests the orchestration of benchmark execution, 
 including dataset loading, experiment generation, and result collection."""
 
-from benchmark.orchestrator import _load_enabled_datasets, run_benchmark
+import json
+
+from benchmark.orchestrator import _load_enabled_datasets, run_and_save_benchmark, run_benchmark
 from config.models import BenchmarkConfig, DatasetConfig
 
 
@@ -204,3 +206,75 @@ def test_run_benchmark_is_reproducible(
     ):
         assert first_result.config == second_result.config
         assert first_result.metrics == second_result.metrics
+        
+def test_run_and_save_benchmark_persists_complete_run(
+    monkeypatch,
+    mixed_dataset,
+    tmp_path,
+):
+    """A complete benchmark run should persist all reproducibility artifacts."""
+    monkeypatch.setattr(
+        "benchmark.orchestrator.load_openml_dataset",
+        lambda data_id: mixed_dataset,
+    )
+
+    datasets = (
+        DatasetConfig(
+            name=mixed_dataset.name,
+            openml_id=61,
+            enabled=True,
+        ),
+    )
+
+    benchmark = BenchmarkConfig(
+        models=("logistic_regression",),
+        label_fractions=(0.5,),
+        seeds=(42,),
+        test_size=0.2,
+    )
+
+    artifacts = run_and_save_benchmark(
+        datasets=datasets,
+        benchmark=benchmark,
+        output_dir=tmp_path,
+    )
+
+    assert artifacts.results_jsonl.exists()
+    assert artifacts.results_csv.exists()
+    assert artifacts.metadata_json.exists()
+    assert artifacts.config_json.exists()
+    
+    with artifacts.metadata_json.open(
+        "r",
+        encoding="utf-8",
+    ) as file:
+        metadata = json.load(file)
+
+    assert metadata["n_experiments"] == 1
+    
+    with artifacts.config_json.open(
+        "r",
+        encoding="utf-8",
+    ) as file:
+        stored_config = json.load(file)
+
+    assert stored_config["benchmark"]["test_size"] == 0.2
+    assert stored_config["benchmark"]["seeds"] == [42]
+    assert stored_config["benchmark"]["models"] == [
+        "logistic_regression"
+    ]
+    
+    with artifacts.results_jsonl.open(
+        "r",
+        encoding="utf-8",
+    ) as file:
+        records = [
+            json.loads(line)
+            for line in file
+        ]
+
+    assert len(records) == 1
+    assert records[0]["model_name"] == "logistic_regression"
+    assert records[0]["seed"] == 42
+    assert records[0]["label_fraction"] == 0.5
+    assert records[0]["test_size"] == 0.2
