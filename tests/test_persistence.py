@@ -7,7 +7,7 @@ import json
 import pytest
 
 from benchmark.experiment import ExperimentConfig, ExperimentResult
-from benchmark.persistence import save_benchmark_config, save_benchmark_results, save_run_metadata
+from benchmark.persistence import save_benchmark_config, save_benchmark_results, save_benchmark_run, save_run_metadata
 from benchmark.metadata import BenchmarkRunMetadata
 from config.models import BenchmarkConfig, DatasetConfig
 from config.serialization import serialize_benchmark_config
@@ -55,7 +55,25 @@ def _create_run_metadata(
         python_version="3.12.0",
         platform="test-platform",
         git_commit=git_commit,
-        n_experiments=10,
+        n_experiments=2,
+    )
+    
+def _create_datasets() -> tuple[DatasetConfig, ...]:
+    """Create representative dataset configuration for persistence tests."""
+    return (
+        DatasetConfig(
+            name="iris",
+            openml_id=61,
+        ),
+    )
+    
+def _create_benchmark_config() -> BenchmarkConfig:
+    """Create representative benchmark configuration for persistence tests."""
+    return BenchmarkConfig(
+        models=("logistic_regression",),
+        label_fractions=(0.5,),
+        seeds=(1, 2),
+        test_size=0.2,
     )
     
 def test_save_benchmark_results_creates_output_files(
@@ -251,19 +269,9 @@ def test_save_benchmark_config_creates_config_file(
     tmp_path,
 ):
     """Benchmark configuration persistence should create a JSON file."""
-    datasets = (
-        DatasetConfig(
-            name="iris",
-            openml_id=61,
-        ),
-    )
+    datasets = _create_datasets()
 
-    benchmark = BenchmarkConfig(
-        models=("logistic_regression",),
-        label_fractions=(0.1,),
-        seeds=(1,),
-        test_size=0.2,
-    )
+    benchmark = _create_benchmark_config()
 
     config_path = save_benchmark_config(
         datasets=datasets,
@@ -278,19 +286,9 @@ def test_save_benchmark_config_preserves_effective_configuration(
     tmp_path,
 ):
     """Persisted configuration should match the effective configuration."""
-    datasets = (
-        DatasetConfig(
-            name="iris",
-            openml_id=61,
-        ),
-    )
+    datasets = _create_datasets()
 
-    benchmark = BenchmarkConfig(
-        models=("logistic_regression",),
-        label_fractions=(0.1, 0.5),
-        seeds=(1, 2),
-        test_size=0.2,
-    )
+    benchmark = _create_benchmark_config()
 
     config_path = save_benchmark_config(
         datasets=datasets,
@@ -319,19 +317,10 @@ def test_save_benchmark_config_creates_output_directory(
         / "benchmark-run"
     )
 
-    datasets = (
-        DatasetConfig(
-            name="iris",
-            openml_id=61,
-        ),
-    )
+    datasets = _create_datasets()
 
-    benchmark = BenchmarkConfig(
-        models=("logistic_regression",),
-        label_fractions=(0.1,),
-        seeds=(1,),
-    )
-
+    benchmark = _create_benchmark_config()
+    
     config_path = save_benchmark_config(
         datasets=datasets,
         benchmark=benchmark,
@@ -340,3 +329,67 @@ def test_save_benchmark_config_creates_output_directory(
 
     assert output_dir.exists()
     assert config_path.exists()
+    
+def test_save_benchmark_run_creates_all_artifacts(
+    tmp_path,
+):
+    """A persisted benchmark run should contain all expected artifacts."""
+    results = (
+        _create_result(seed=1),
+        _create_result(seed=2),
+    )
+
+    datasets = _create_datasets()
+
+    benchmark = _create_benchmark_config()
+
+    metadata = _create_run_metadata()
+    
+    artifacts = save_benchmark_run(
+        results=results,
+        datasets=datasets,
+        benchmark=benchmark,
+        metadata=metadata,
+        output_dir=tmp_path,
+    )
+
+    assert artifacts.results_jsonl.exists()
+    assert artifacts.results_csv.exists()
+    assert artifacts.metadata_json.exists()
+    assert artifacts.config_json.exists()
+    
+    assert artifacts.results_jsonl.name == "results.jsonl"
+    assert artifacts.results_csv.name == "results.csv"
+    assert artifacts.metadata_json.name == "metadata.json"
+    assert artifacts.config_json.name == "config.json"
+    
+def test_save_benchmark_run_rejects_inconsistent_experiment_count(
+    tmp_path,
+):
+    """Run persistence should reject inconsistent experiment counts."""
+    results = (
+        _create_result(seed=1),
+    )
+
+    metadata = _create_run_metadata()
+
+    datasets = _create_datasets()
+
+    benchmark = _create_benchmark_config()
+
+    with pytest.raises(
+        ValueError,
+        match="experiment count",
+    ):
+        save_benchmark_run(
+            results=results,
+            datasets=datasets,
+            benchmark=benchmark,
+            metadata=metadata,
+            output_dir=tmp_path,
+        )
+    
+    assert not (tmp_path / "results.jsonl").exists()
+    assert not (tmp_path / "results.csv").exists()
+    assert not (tmp_path / "metadata.json").exists()
+    assert not (tmp_path / "config.json").exists()
