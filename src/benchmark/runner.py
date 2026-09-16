@@ -224,9 +224,9 @@ def run_experiment_spec(
     dataset: TabularDataset,
 ) -> ExperimentResult:
     """Execute one experiment specification on a loaded dataset.
-    The classifier is created from the model identifier and experiment
-    seed stored in the specification. The experiment is then delegated
-    to the supervised experiment runner.
+    The classifier and learning strategy are created from the identifiers
+    stored in the experiment specification. Execution is then delegated to
+    the generic experiment runner.
 
     Args:
         spec (ExperimentSpec): Experimental specification to execute.
@@ -234,8 +234,8 @@ def run_experiment_spec(
             experiment.
 
     Returns:
-        ExperimentResult: Result produced by the supervised experiment.
-
+        ExperimentResult: Result produced by the configured experiment.
+        
     Raises:
         ValueError: If the loaded dataset does not match the dataset
             requested by the experiment specification.
@@ -252,7 +252,9 @@ def run_experiment_spec(
         seed=spec.seed,
     )
     
-    ssl_method = create_ssl_method("supervised")
+    ssl_method = create_ssl_method(
+        spec.ssl_method
+    )
 
     return run_experiment(
         dataset=dataset,

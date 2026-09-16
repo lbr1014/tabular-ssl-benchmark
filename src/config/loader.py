@@ -72,6 +72,7 @@ def load_benchmark_config(
 
     required = {
         "models",
+        "ssl_methods",
         "label_fractions",
         "seeds",
     }
@@ -86,6 +87,7 @@ def load_benchmark_config(
     )
 
     models = raw_config["models"]
+    ssl_methods = raw_config["ssl_methods"]
     label_fractions = raw_config["label_fractions"]
     seeds = raw_config["seeds"]
     
@@ -93,6 +95,11 @@ def load_benchmark_config(
         raise ValueError(
             "'models' must be a list."
         )
+        
+    if not isinstance(ssl_methods, list):
+            raise ValueError(
+                "'ssl_methods' must be a list."
+            )
 
     if not isinstance(label_fractions, list):
         raise ValueError(
@@ -106,6 +113,7 @@ def load_benchmark_config(
 
     return BenchmarkConfig(
         models=tuple(models),
+        ssl_methods=tuple(ssl_methods),
         label_fractions=tuple(label_fractions),
         seeds=tuple(seeds),
         test_size=raw_config.get("test_size", 0.2),

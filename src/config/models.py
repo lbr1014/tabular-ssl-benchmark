@@ -40,6 +40,7 @@ class BenchmarkConfig:
     """Configuration describing the benchmark experiment grid."""
 
     models: tuple[str, ...]
+    ssl_methods: tuple[str, ...]
     label_fractions: tuple[float, ...]
     seeds: tuple[int, ...]
     test_size: float = 0.2
@@ -47,6 +48,7 @@ class BenchmarkConfig:
     def __post_init__(self) -> None:
         """Validate benchmark-wide experimental settings."""
         self._validate_models()
+        self._validate_ssl_methods()
         self._validate_label_fractions()
         self._validate_seeds()
         self._validate_test_size()
@@ -76,7 +78,33 @@ class BenchmarkConfig:
             raise ValueError(
                 "models must not contain duplicate values."
             )
+            
+    def _validate_ssl_methods(self) -> None:
+        """Validate benchmark SSL method identifiers."""
+        if not isinstance(self.ssl_methods, tuple):
+            raise TypeError("ssl_methods must be a tuple.")
 
+        if not self.ssl_methods:
+            raise ValueError(
+                "ssl_methods must contain at least one method."
+            )
+
+        for method_name in self.ssl_methods:
+            if not isinstance(method_name, str):
+                raise TypeError(
+                    "ssl_methods must contain string values."
+                )
+
+            if not method_name.strip():
+                raise ValueError(
+                    "ssl_methods must not contain empty names."
+                )
+
+        if len(set(self.ssl_methods)) != len(self.ssl_methods):
+            raise ValueError(
+                "ssl_methods must not contain duplicate values."
+            )
+    
     def _validate_label_fractions(self) -> None:
         """Validate labelled training fractions."""
         if not isinstance(self.label_fractions, tuple):
