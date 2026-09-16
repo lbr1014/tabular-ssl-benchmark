@@ -50,6 +50,10 @@ def test_load_benchmark_config(tmp_path: Path):
 models:
   - logistic_regression
   - random_forest
+
+ssl_methods:
+  - supervised
+  
 label_fractions:
   - 0.05
   - 0.10
@@ -73,6 +77,7 @@ test_size: 0.25
         0.20,
     )
     assert config.models == ("logistic_regression", "random_forest")
+    assert config.ssl_methods == ("supervised",)
     assert config.seeds == (1, 2, 3)
     assert config.test_size == 0.25
 
@@ -87,6 +92,9 @@ def test_benchmark_config_uses_default_test_size(
         """
 models:
   - logistic_regression
+  
+ssl_methods:
+  - supervised
   
 label_fractions:
   - 0.10
@@ -197,6 +205,9 @@ def test_benchmark_loader_rejects_unknown_key(
 models:
     - logistic_regression
     
+ssl_methods:
+    - supervised
+    
 label_fractions:
   - 0.1
 
@@ -270,6 +281,7 @@ def test_benchmark_config_rejects_empty_models():
     ):
         BenchmarkConfig(
             models=(),
+            ssl_methods=("supervised",),
             label_fractions=(0.1,),
             seeds=(42,),
         )
@@ -286,6 +298,7 @@ def test_benchmark_config_rejects_duplicate_models():
                 "random_forest",
                 "random_forest",
             ),
+            ssl_methods=("supervised",),
             label_fractions=(0.1,),
             seeds=(42,),
         )

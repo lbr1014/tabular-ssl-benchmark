@@ -36,6 +36,9 @@ models:
   - logistic_regression
   - random_forest
   
+ssl_methods:
+  - supervised
+  
 label_fractions:
   - 0.1
   - 0.5
@@ -65,6 +68,7 @@ test_size: 0.25
     expected_size = (
         enabled_datasets
         * len(benchmark.models)
+        * len(benchmark.ssl_methods)
         * len(benchmark.label_fractions)
         * len(benchmark.seeds)
     )
@@ -75,11 +79,13 @@ test_size: 0.25
         (
             f"iris"
             f"__model-{model_name}"
+            f"__ssl-{ssl_methods}"
             f"__lf-{label_fraction:g}"
             f"__test-{benchmark.test_size:g}"
             f"__seed-{seed}"
         )
         for model_name in benchmark.models
+        for ssl_methods in benchmark.ssl_methods
         for label_fraction in benchmark.label_fractions
         for seed in benchmark.seeds
     ]

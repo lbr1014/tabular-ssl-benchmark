@@ -25,6 +25,7 @@ def test_serialize_benchmark_config_preserves_effective_configuration():
             "logistic_regression",
             "random_forest",
         ),
+        ssl_methods=("supervised",),
         label_fractions=(0.1, 0.5),
         seeds=(1, 2),
         test_size=0.25,
@@ -53,6 +54,9 @@ def test_serialize_benchmark_config_preserves_effective_configuration():
                 "logistic_regression",
                 "random_forest",
             ],
+            "ssl_methods":[
+                "supervised",    
+            ],
             "label_fractions": [0.1, 0.5],
             "seeds": [1, 2],
             "test_size": 0.25,
@@ -70,6 +74,7 @@ def test_serialized_benchmark_config_is_json_serializable():
 
     benchmark = BenchmarkConfig(
         models=("logistic_regression",),
+        ssl_methods=("supervised",),
         label_fractions=(0.1,),
         seeds=(1,),
         test_size=0.2,

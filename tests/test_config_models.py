@@ -47,6 +47,7 @@ def test_valid_benchmark_config():
     """A valid benchmark configuration should preserve its values."""
     config = BenchmarkConfig(
         models=("logistic_regression",),
+        ssl_methods=("supervised",),
         label_fractions=(0.05, 0.1, 0.2, 0.5),
         seeds=(1, 2, 3),
         test_size=0.2,
@@ -72,6 +73,7 @@ def test_benchmark_config_rejects_invalid_label_fraction(
     ):
         BenchmarkConfig(
             models=("logistic_regression",),
+            ssl_methods=("supervised",),
             label_fractions=(label_fraction,),
             seeds=(42,),
         )
@@ -85,6 +87,7 @@ def test_benchmark_config_rejects_duplicate_label_fractions():
     ):
         BenchmarkConfig(
             models=("logistic_regression",),
+            ssl_methods=("supervised",),
             label_fractions=(0.1, 0.1),
             seeds=(42,),
         )
@@ -98,6 +101,7 @@ def test_benchmark_config_rejects_duplicate_seeds():
     ):
         BenchmarkConfig(
             models=("logistic_regression",),
+            ssl_methods=("supervised",),
             label_fractions=(0.1,),
             seeds=(42, 42),
         )
@@ -111,6 +115,7 @@ def test_benchmark_config_rejects_negative_seed():
     ):
         BenchmarkConfig(
             models=("logistic_regression",),
+            ssl_methods=("supervised",),
             label_fractions=(0.1,),
             seeds=(-1,),
         )
@@ -124,6 +129,7 @@ def test_benchmark_config_rejects_invalid_test_size(test_size):
     ):
         BenchmarkConfig(
             models=("logistic_regression",),
+            ssl_methods=("supervised",),
             label_fractions=(0.1,),
             seeds=(42,),
             test_size=test_size,
@@ -137,6 +143,7 @@ def test_benchmark_config_rejects_empty_models():
     ):
         BenchmarkConfig(
             models=(),
+            ssl_methods=("supervised",),
             label_fractions=(0.1,),
             seeds=(42,),
         )
@@ -152,6 +159,7 @@ def test_benchmark_config_rejects_duplicate_models():
                 "logistic_regression",
                 "logistic_regression",
             ),
+            ssl_methods=("supervised",),
             label_fractions=(0.1,),
             seeds=(42,),
         )
@@ -164,6 +172,7 @@ def test_benchmark_config_rejects_non_string_model():
     ):
         BenchmarkConfig(
             models=("logistic_regression", 42),
+            ssl_methods=("supervised",),
             label_fractions=(0.1,),
             seeds=(42,),
         )
@@ -182,6 +191,68 @@ def test_benchmark_config_rejects_empty_model_name(
     ):
         BenchmarkConfig(
             models=(model_name,),
+            ssl_methods=("supervised",),
+            label_fractions=(0.1,),
+            seeds=(42,),
+        )
+        
+def test_benchmark_config_rejects_empty_ssl_methods():
+    """At least one SSL method must be configured."""
+    with pytest.raises(
+        ValueError,
+        match="ssl_methods must contain at least one method",
+    ):
+        BenchmarkConfig(
+            models=("logistic_regression",),
+            ssl_methods=(),
+            label_fractions=(0.1,),
+            seeds=(42,),
+        )
+
+
+def test_benchmark_config_rejects_duplicate_ssl_methods():
+    """Duplicate SSL method identifiers should be rejected."""
+    with pytest.raises(
+        ValueError,
+        match="ssl_methods must not contain duplicate values",
+    ):
+        BenchmarkConfig(
+            models=("logistic_regression",),
+            ssl_methods=("supervised", "supervised"),
+            label_fractions=(0.1,),
+            seeds=(42,),
+        )
+
+
+def test_benchmark_config_rejects_non_string_ssl_method():
+    """SSL method identifiers must be strings."""
+    with pytest.raises(
+        TypeError,
+        match="ssl_methods must contain string values",
+    ):
+        BenchmarkConfig(
+            models=("logistic_regression",),
+            ssl_methods=("supervised", 42),
+            label_fractions=(0.1,),
+            seeds=(42,),
+        )
+
+
+@pytest.mark.parametrize(
+    "ssl_method",
+    ["", "   "],
+)
+def test_benchmark_config_rejects_empty_ssl_method_name(
+    ssl_method,
+):
+    """SSL method identifiers must not be empty."""
+    with pytest.raises(
+        ValueError,
+        match="ssl_methods must not contain empty names",
+    ):
+        BenchmarkConfig(
+            models=("logistic_regression",),
+            ssl_methods=(ssl_method,),
             label_fractions=(0.1,),
             seeds=(42,),
         )

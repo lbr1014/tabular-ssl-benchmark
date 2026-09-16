@@ -71,6 +71,7 @@ def _create_benchmark_config() -> BenchmarkConfig:
     """Create representative benchmark configuration for persistence tests."""
     return BenchmarkConfig(
         models=("logistic_regression",),
+        ssl_methods=("supervised",),
         label_fractions=(0.5,),
         seeds=(1, 2),
         test_size=0.2,

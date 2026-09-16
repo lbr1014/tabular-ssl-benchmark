@@ -176,6 +176,7 @@ def test_run_experiment_spec_returns_result(
             openml_id=1,
         ),
         model_name="logistic_regression",
+        ssl_method="supervised",
         label_fraction=0.5,
         seed=42,
         test_size=0.2,
@@ -193,6 +194,7 @@ def test_run_experiment_spec_returns_result(
 
     assert result.config.dataset_name == mixed_dataset.name
     assert result.config.model_name == "logistic_regression"
+    assert result.config.ssl_method == "supervised"
     assert result.config.label_fraction == 0.5
     assert result.config.seed == 42
     assert result.config.test_size == 0.2
@@ -215,6 +217,7 @@ def test_run_experiment_spec_supports_registered_models(
             openml_id=1,
         ),
         model_name=model_name,
+        ssl_method="supervised",
         label_fraction=0.5,
         seed=42,
         test_size=0.2,
@@ -237,6 +240,7 @@ def test_run_experiment_spec_rejects_dataset_mismatch(
             openml_id=1,
         ),
         model_name="logistic_regression",
+        ssl_method="supervised",
         label_fraction=0.5,
         seed=42,
         test_size=0.2,
@@ -261,6 +265,7 @@ def test_run_experiment_spec_is_reproducible(
             openml_id=1,
         ),
         model_name="random_forest",
+        ssl_method="supervised",
         label_fraction=0.5,
         seed=42,
         test_size=0.2,
@@ -291,6 +296,7 @@ def test_run_benchmark_matrix_executes_all_specs(
         ExperimentSpec(
             dataset=dataset_config,
             model_name="logistic_regression",
+            ssl_method="supervised",
             label_fraction=0.5,
             seed=1,
             test_size=0.2,
@@ -298,6 +304,7 @@ def test_run_benchmark_matrix_executes_all_specs(
         ExperimentSpec(
             dataset=dataset_config,
             model_name="random_forest",
+            ssl_method="supervised",
             label_fraction=0.5,
             seed=1,
             test_size=0.2,
@@ -331,6 +338,7 @@ def test_run_benchmark_matrix_preserves_order(
         ExperimentSpec(
             dataset=dataset_config,
             model_name="logistic_regression",
+            ssl_method="supervised",
             label_fraction=0.5,
             seed=1,
             test_size=0.2,
@@ -338,6 +346,7 @@ def test_run_benchmark_matrix_preserves_order(
         ExperimentSpec(
             dataset=dataset_config,
             model_name="random_forest",
+            ssl_method="supervised",
             label_fraction=0.5,
             seed=2,
             test_size=0.2,
@@ -377,6 +386,7 @@ def test_run_benchmark_matrix_rejects_missing_dataset(
             openml_id=1,
         ),
         model_name="logistic_regression",
+        ssl_method="supervised",
         label_fraction=0.5,
         seed=42,
         test_size=0.2,
@@ -480,3 +490,28 @@ def test_generic_runner_supports_empty_unlabeled_partition(
     assert result.n_unlabeled == 0
     assert result.n_labeled == result.n_train
     assert result.config.ssl_method == "supervised"
+    
+def test_run_experiment_spec_rejects_unknown_ssl_method(
+    mixed_dataset,
+):
+    """Experiment execution should reject unregistered SSL methods."""
+    spec = ExperimentSpec(
+        dataset=DatasetConfig(
+            name=mixed_dataset.name,
+            openml_id=1,
+        ),
+        model_name="logistic_regression",
+        ssl_method="unknown_ssl_method",
+        label_fraction=0.5,
+        seed=42,
+        test_size=0.2,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Unknown SSL method",
+    ):
+        run_experiment_spec(
+            spec=spec,
+            dataset=mixed_dataset,
+        )

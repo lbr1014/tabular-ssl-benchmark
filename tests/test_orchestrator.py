@@ -67,6 +67,7 @@ def test_run_benchmark_executes_complete_matrix(
             "logistic_regression",
             "random_forest",
         ),
+        ssl_methods=("supervised",),
         label_fractions=(
             0.5,
             1.0,
@@ -85,6 +86,7 @@ def test_run_benchmark_executes_complete_matrix(
 
     expected_count = (
         len(benchmark.models)
+        * len(benchmark.ssl_methods)
         * len(benchmark.label_fractions)
         * len(benchmark.seeds)
     )
@@ -94,6 +96,7 @@ def test_run_benchmark_executes_complete_matrix(
     actual_combinations = {
         (
             result.config.model_name,
+            result.config.ssl_method,
             result.config.label_fraction,
             result.config.seed,
         )
@@ -103,10 +106,12 @@ def test_run_benchmark_executes_complete_matrix(
     expected_combinations = {
         (
             model_name,
+            ssl_method,
             label_fraction,
             seed,
         )
         for model_name in benchmark.models
+        for ssl_method in benchmark.ssl_methods
         for label_fraction in benchmark.label_fractions
         for seed in benchmark.seeds
     }
@@ -142,6 +147,7 @@ def test_run_benchmark_loads_each_dataset_once(
             "logistic_regression",
             "random_forest",
         ),
+        ssl_methods=("supervised",),
         label_fractions=(
             0.1,
             0.5,
@@ -182,6 +188,7 @@ def test_run_benchmark_is_reproducible(
 
     benchmark = BenchmarkConfig(
         models=("random_forest",),
+        ssl_methods=("supervised",),
         label_fractions=(0.5,),
         seeds=(42,),
         test_size=0.2,
@@ -228,6 +235,7 @@ def test_run_and_save_benchmark_persists_complete_run(
 
     benchmark = BenchmarkConfig(
         models=("logistic_regression",),
+        ssl_methods=("supervised",),
         label_fractions=(0.5,),
         seeds=(42,),
         test_size=0.2,
@@ -263,6 +271,9 @@ def test_run_and_save_benchmark_persists_complete_run(
     assert stored_config["benchmark"]["models"] == [
         "logistic_regression"
     ]
+    assert stored_config["benchmark"]["ssl_methods"] == [
+        "supervised"
+    ]
     
     with artifacts.results_jsonl.open(
         "r",
@@ -275,6 +286,7 @@ def test_run_and_save_benchmark_persists_complete_run(
 
     assert len(records) == 1
     assert records[0]["model_name"] == "logistic_regression"
+    assert records[0]["ssl_method"] == "supervised"
     assert records[0]["seed"] == 42
     assert records[0]["label_fraction"] == 0.5
     assert records[0]["test_size"] == 0.2
