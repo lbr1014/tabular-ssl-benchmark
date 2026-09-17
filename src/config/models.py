@@ -4,7 +4,8 @@ This module defines the validated configuration structures used to
 describe datasets and benchmark-wide experimental settings.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -173,3 +174,26 @@ class BenchmarkConfig:
             raise ValueError(
                 "test_size must be in the interval (0, 1)."
             )
+            
+@dataclass(frozen=True)
+class SSLMethodConfig:
+    """Configuration for a semi-supervised learning strategy.
+
+    Attributes:
+        name: Stable identifier of the SSL strategy.
+        params: Strategy-specific hyperparameters.
+    """
+
+    name: str
+    params: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        """Validate the SSL method configuration."""
+        if not isinstance(self.name, str):
+            raise TypeError("name must be a string.")
+
+        if not self.name.strip():
+            raise ValueError("name must not be empty.")
+
+        if not isinstance(self.params, dict):
+            raise TypeError("params must be a dictionary.")
