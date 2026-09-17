@@ -2,7 +2,7 @@
 
 import pytest
 
-from config.models import BenchmarkConfig, DatasetConfig
+from config.models import BenchmarkConfig, DatasetConfig, SSLMethodConfig
 
 
 def test_valid_dataset_config():
@@ -256,3 +256,46 @@ def test_benchmark_config_rejects_empty_ssl_method_name(
             label_fractions=(0.1,),
             seeds=(42,),
         )
+        
+def test_ssl_method_config_accepts_valid_configuration() -> None:
+    """SSL method configuration should preserve valid parameters."""
+    config = SSLMethodConfig(
+        name="self_training",
+        params={
+            "confidence_threshold": 0.95,
+            "max_iterations": 10,
+        },
+    )
+
+    assert config.name == "self_training"
+    assert config.params == {
+        "confidence_threshold": 0.95,
+        "max_iterations": 10,
+    }
+
+
+def test_ssl_method_config_defaults_to_empty_parameters() -> None:
+    """SSL methods without hyperparameters should use an empty mapping."""
+    config = SSLMethodConfig(name="supervised")
+
+    assert config.params == {}
+
+def test_ssl_method_config_rejects_non_mapping_parameters() -> None:
+    """SSL method parameters must be provided as a mapping."""
+    with pytest.raises(TypeError, match="params"):
+        SSLMethodConfig(
+            name="self_training",
+            params=["invalid"],
+        )
+        
+@pytest.mark.parametrize(
+    "name",
+    ["", " ", "   "],
+)
+def test_ssl_method_config_rejects_whitespace_name(name):
+    """SSL method names must not contain only whitespace."""
+    with pytest.raises(
+        ValueError,
+        match="name must not be empty",
+    ):
+        SSLMethodConfig(name=name)
