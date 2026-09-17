@@ -3,6 +3,8 @@
 import pytest
 
 from ssl_methods.base import SSLMethod
+from ssl_methods.factory import create_ssl_method
+from ssl_methods.self_training import SelfTrainingMethod
 
 
 def test_ssl_method_cannot_be_instantiated() -> None:
@@ -33,12 +35,19 @@ def test_complete_ssl_method_can_be_instantiated() -> None:
             self,
             *,
             model,
-            X_labeled,
+            x_labeled,
             y_labeled,
-            X_unlabeled,
+            x_unlabeled,
         ):
             return model
 
     method = CompleteSSLMethod()
 
     assert method.name == "complete"
+    
+def test_create_self_training_method() -> None:
+    """Factory should create the self-training SSL strategy."""
+    method = create_ssl_method("self_training")
+
+    assert isinstance(method, SelfTrainingMethod)
+    assert method.name == "self_training"
