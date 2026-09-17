@@ -30,6 +30,10 @@ def test_complete_ssl_method_can_be_instantiated() -> None:
         @property
         def name(self) -> str:
             return "complete"
+        
+        @property
+        def params(self) -> dict[str, object]:
+            return {}
 
         def fit(
             self,
@@ -51,3 +55,24 @@ def test_create_self_training_method() -> None:
 
     assert isinstance(method, SelfTrainingMethod)
     assert method.name == "self_training"
+    
+def test_ssl_method_without_params_cannot_be_instantiated() -> None:
+    """Verify that subclasses must expose their effective parameters."""
+
+    class MissingParamsSSLMethod(SSLMethod):
+        @property
+        def name(self) -> str:
+            return "missing_params"
+
+        def fit(
+            self,
+            *,
+            model,
+            x_labeled,
+            y_labeled,
+            x_unlabeled,
+        ):
+            return model
+
+    with pytest.raises(TypeError):
+        MissingParamsSSLMethod()

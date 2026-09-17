@@ -202,3 +202,25 @@ def test_self_training_uses_classifier_classes_for_pseudo_labels():
         "negative",
         "positive",
     ]
+    
+def test_self_training_exposes_effective_parameters() -> None:
+    """Self-training should expose its effective configuration."""
+    method = SelfTrainingMethod(
+        confidence_threshold=0.90,
+        max_iterations=5,
+    )
+
+    assert method.params == {
+        "confidence_threshold": 0.90,
+        "max_iterations": 5,
+    }
+    
+def test_self_training_exposes_default_parameters() -> None:
+    """Default self-training settings should be part of effective configuration."""
+    method = SelfTrainingMethod()
+
+    assert method.params == {
+        "confidence_threshold": 0.95,
+        "max_iterations": 10,
+    }
+    

@@ -92,3 +92,9 @@ def test_supervised_method_ignores_unlabeled_data() -> None:
         first_probabilities,
         second_probabilities,
     )
+    
+def test_supervised_method_has_no_ssl_parameters() -> None:
+    """Supervised reference strategy should expose no SSL parameters."""
+    method = SupervisedMethod()
+
+    assert method.params == {}

@@ -440,6 +440,7 @@ def test_generic_runner_records_ssl_method(
     )
 
     assert result.config.ssl_method == "supervised"
+    assert result.config.ssl_params == {}
     
 def test_generic_supervised_runner_matches_legacy_runner(
     mixed_dataset,
@@ -545,3 +546,35 @@ def test_run_experiment_spec_supports_configured_self_training(
 
     assert isinstance(result, ExperimentResult)
     assert result.config.ssl_method == "self_training"
+    assert result.config.ssl_params == {
+        "confidence_threshold": 0.95,
+        "max_iterations": 5,
+    }
+    
+def test_run_experiment_spec_records_effective_ssl_defaults(
+    mixed_dataset,
+):
+    """Experiment results should record effective SSL default parameters."""
+    spec = ExperimentSpec(
+        dataset=DatasetConfig(
+            name=mixed_dataset.name,
+            openml_id=1,
+        ),
+        model_name="logistic_regression",
+        ssl_method=SSLMethodConfig(
+            name="self_training",
+        ),
+        label_fraction=0.5,
+        seed=42,
+        test_size=0.2,
+    )
+
+    result = run_experiment_spec(
+        spec=spec,
+        dataset=mixed_dataset,
+    )
+
+    assert result.config.ssl_params == {
+        "confidence_threshold": 0.95,
+        "max_iterations": 10,
+    }
