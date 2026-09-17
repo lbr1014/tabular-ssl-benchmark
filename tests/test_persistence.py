@@ -9,7 +9,7 @@ import pytest
 from benchmark.experiment import ExperimentConfig, ExperimentResult
 from benchmark.persistence import save_benchmark_config, save_benchmark_results, save_benchmark_run, save_run_metadata
 from benchmark.metadata import BenchmarkRunMetadata
-from config.models import BenchmarkConfig, DatasetConfig
+from config.models import BenchmarkConfig, DatasetConfig, SSLMethodConfig
 from config.serialization import serialize_benchmark_config
 
 def _create_result(
@@ -71,7 +71,7 @@ def _create_benchmark_config() -> BenchmarkConfig:
     """Create representative benchmark configuration for persistence tests."""
     return BenchmarkConfig(
         models=("logistic_regression",),
-        ssl_methods=("supervised",),
+        ssl_methods=(SSLMethodConfig(name="supervised"),),
         label_fractions=(0.5,),
         seeds=(1, 2),
         test_size=0.2,

@@ -253,7 +253,8 @@ def run_experiment_spec(
     )
     
     ssl_method = create_ssl_method(
-        spec.ssl_method
+        spec.ssl_method.name,
+        **spec.ssl_method.params,
     )
 
     return run_experiment(

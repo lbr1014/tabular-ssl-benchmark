@@ -6,7 +6,7 @@ from config.matrix import (
     ExperimentSpec,
     generate_experiment_matrix,
 )
-from config.models import BenchmarkConfig, DatasetConfig
+from config.models import BenchmarkConfig, DatasetConfig, SSLMethodConfig
 from itertools import product
 
 @pytest.fixture
@@ -34,7 +34,7 @@ def benchmark_config() -> BenchmarkConfig:
             "logistic_regression",
             "random_forest",
         ),
-        ssl_methods=("supervised",),
+        ssl_methods=(SSLMethodConfig(name="supervised"),),
         label_fractions=(0.1, 0.5),
         seeds=(1, 2, 3),
         test_size=0.2,
@@ -160,7 +160,7 @@ def test_spec_id_is_deterministic():
             openml_id=61,
         ),
         model_name="random_forest",
-        ssl_method="supervised",
+        ssl_method=SSLMethodConfig(name = "supervised"),
         label_fraction=0.1,
         seed=42,
         test_size=0.2,
@@ -221,7 +221,7 @@ def test_matrix_contains_all_combinations(
         (
             spec.dataset.name,
             spec.model_name,
-            spec.ssl_method,
+            spec.ssl_method.name,
             spec.label_fraction,
             spec.seed,
         )
@@ -232,7 +232,9 @@ def test_matrix_contains_all_combinations(
         product(
             ("iris", "adult"),
             benchmark_config.models,
-            benchmark_config.ssl_methods,
+            tuple(
+                method.name for method in benchmark_config.ssl_methods
+            ),
             benchmark_config.label_fractions,
             benchmark_config.seeds,
         )
@@ -247,7 +249,7 @@ def test_experiment_spec_id_changes_with_test_size(
     first = ExperimentSpec(
         dataset=dataset_config,
         model_name="logistic_regression",
-        ssl_method="supervised",
+        ssl_method=SSLMethodConfig(name = "supervised"),
         label_fraction=0.1,
         seed=42,
         test_size=0.2,
@@ -256,7 +258,7 @@ def test_experiment_spec_id_changes_with_test_size(
     second = ExperimentSpec(
         dataset=dataset_config,
         model_name="logistic_regression",
-        ssl_method="supervised",
+        ssl_method=SSLMethodConfig(name = "supervised"),
         label_fraction=0.1,
         seed=42,
         test_size=0.3,
@@ -271,7 +273,7 @@ def test_experiment_spec_id_changes_with_ssl_method(
     first = ExperimentSpec(
         dataset=dataset_config,
         model_name="logistic_regression",
-        ssl_method="supervised",
+        ssl_method=SSLMethodConfig(name = "supervised"),
         label_fraction=0.1,
         seed=42,
         test_size=0.2,
@@ -280,10 +282,40 @@ def test_experiment_spec_id_changes_with_ssl_method(
     second = ExperimentSpec(
         dataset=dataset_config,
         model_name="logistic_regression",
-        ssl_method="dummy_ssl",
+        ssl_method=SSLMethodConfig(name="dummy_ssl"),
         label_fraction=0.1,
         seed=42,
         test_size=0.2,
     )
 
     assert first.spec_id != second.spec_id
+    
+def test_matrix_preserves_ssl_method_parameters(
+    datasets,
+) -> None:
+    """Experiment specifications should preserve SSL hyperparameters."""
+    self_training = SSLMethodConfig(
+        name="self_training",
+        params={
+            "confidence_threshold": 0.95,
+            "max_iterations": 10,
+        },
+    )
+
+    benchmark = BenchmarkConfig(
+        models=("logistic_regression",),
+        ssl_methods=(self_training,),
+        label_fractions=(0.1,),
+        seeds=(42,),
+        test_size=0.2,
+    )
+
+    matrix = generate_experiment_matrix(
+        datasets=datasets,
+        benchmark=benchmark,
+    )
+
+    assert all(
+        spec.ssl_method == self_training
+        for spec in matrix
+    )

@@ -5,7 +5,7 @@ import pytest
 from benchmark.experiment import ExperimentResult
 from benchmark.runner import run_benchmark_matrix, run_experiment, run_experiment_spec, run_supervised_experiment
 from config.matrix import ExperimentSpec
-from config.models import DatasetConfig
+from config.models import DatasetConfig, SSLMethodConfig
 from models.sklearn_models import (
     create_logistic_regression,
     create_random_forest,
@@ -176,7 +176,7 @@ def test_run_experiment_spec_returns_result(
             openml_id=1,
         ),
         model_name="logistic_regression",
-        ssl_method="supervised",
+        ssl_method=SSLMethodConfig(name="supervised"),
         label_fraction=0.5,
         seed=42,
         test_size=0.2,
@@ -217,7 +217,7 @@ def test_run_experiment_spec_supports_registered_models(
             openml_id=1,
         ),
         model_name=model_name,
-        ssl_method="supervised",
+        ssl_method=SSLMethodConfig(name="supervised"),
         label_fraction=0.5,
         seed=42,
         test_size=0.2,
@@ -240,7 +240,7 @@ def test_run_experiment_spec_rejects_dataset_mismatch(
             openml_id=1,
         ),
         model_name="logistic_regression",
-        ssl_method="supervised",
+        ssl_method=SSLMethodConfig(name="supervised"),
         label_fraction=0.5,
         seed=42,
         test_size=0.2,
@@ -265,7 +265,7 @@ def test_run_experiment_spec_is_reproducible(
             openml_id=1,
         ),
         model_name="random_forest",
-        ssl_method="supervised",
+        ssl_method=SSLMethodConfig(name="supervised"),
         label_fraction=0.5,
         seed=42,
         test_size=0.2,
@@ -296,7 +296,7 @@ def test_run_benchmark_matrix_executes_all_specs(
         ExperimentSpec(
             dataset=dataset_config,
             model_name="logistic_regression",
-            ssl_method="supervised",
+            ssl_method=SSLMethodConfig(name="supervised"),
             label_fraction=0.5,
             seed=1,
             test_size=0.2,
@@ -304,7 +304,7 @@ def test_run_benchmark_matrix_executes_all_specs(
         ExperimentSpec(
             dataset=dataset_config,
             model_name="random_forest",
-            ssl_method="supervised",
+            ssl_method=SSLMethodConfig(name="supervised"),
             label_fraction=0.5,
             seed=1,
             test_size=0.2,
@@ -338,7 +338,7 @@ def test_run_benchmark_matrix_preserves_order(
         ExperimentSpec(
             dataset=dataset_config,
             model_name="logistic_regression",
-            ssl_method="supervised",
+            ssl_method=SSLMethodConfig(name="supervised"),
             label_fraction=0.5,
             seed=1,
             test_size=0.2,
@@ -346,7 +346,7 @@ def test_run_benchmark_matrix_preserves_order(
         ExperimentSpec(
             dataset=dataset_config,
             model_name="random_forest",
-            ssl_method="supervised",
+            ssl_method=SSLMethodConfig(name="supervised"),
             label_fraction=0.5,
             seed=2,
             test_size=0.2,
@@ -386,7 +386,7 @@ def test_run_benchmark_matrix_rejects_missing_dataset(
             openml_id=1,
         ),
         model_name="logistic_regression",
-        ssl_method="supervised",
+        ssl_method=SSLMethodConfig(name="supervised"),
         label_fraction=0.5,
         seed=42,
         test_size=0.2,
@@ -501,7 +501,7 @@ def test_run_experiment_spec_rejects_unknown_ssl_method(
             openml_id=1,
         ),
         model_name="logistic_regression",
-        ssl_method="unknown_ssl_method",
+        ssl_method=SSLMethodConfig(name="unknown_ssl_method"),
         label_fraction=0.5,
         seed=42,
         test_size=0.2,
@@ -515,3 +515,33 @@ def test_run_experiment_spec_rejects_unknown_ssl_method(
             spec=spec,
             dataset=mixed_dataset,
         )
+        
+def test_run_experiment_spec_supports_configured_self_training(
+    mixed_dataset,
+):
+    """Experiment specifications should configure self-training parameters."""
+    spec = ExperimentSpec(
+        dataset=DatasetConfig(
+            name=mixed_dataset.name,
+            openml_id=1,
+        ),
+        model_name="logistic_regression",
+        ssl_method=SSLMethodConfig(
+            name="self_training",
+            params={
+                "confidence_threshold": 0.95,
+                "max_iterations": 5,
+            },
+        ),
+        label_fraction=0.5,
+        seed=42,
+        test_size=0.2,
+    )
+
+    result = run_experiment_spec(
+        spec=spec,
+        dataset=mixed_dataset,
+    )
+
+    assert isinstance(result, ExperimentResult)
+    assert result.config.ssl_method == "self_training"

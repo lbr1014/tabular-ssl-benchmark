@@ -37,7 +37,7 @@ models:
   - random_forest
   
 ssl_methods:
-  - supervised
+  - name: supervised
   
 label_fractions:
   - 0.1
@@ -79,7 +79,7 @@ test_size: 0.25
         (
             f"iris"
             f"__model-{model_name}"
-            f"__ssl-{ssl_methods}"
+            f"__ssl-{ssl_methods.name}"
             f"__lf-{label_fraction:g}"
             f"__test-{benchmark.test_size:g}"
             f"__seed-{seed}"

@@ -5,7 +5,7 @@ including dataset loading, experiment generation, and result collection."""
 import json
 
 from benchmark.orchestrator import _load_enabled_datasets, run_and_save_benchmark, run_benchmark
-from config.models import BenchmarkConfig, DatasetConfig
+from config.models import BenchmarkConfig, DatasetConfig, SSLMethodConfig
 
 
 def test_load_enabled_datasets_skips_disabled_datasets(
@@ -67,7 +67,7 @@ def test_run_benchmark_executes_complete_matrix(
             "logistic_regression",
             "random_forest",
         ),
-        ssl_methods=("supervised",),
+        ssl_methods=(SSLMethodConfig(name="supervised"),),
         label_fractions=(
             0.5,
             1.0,
@@ -106,7 +106,7 @@ def test_run_benchmark_executes_complete_matrix(
     expected_combinations = {
         (
             model_name,
-            ssl_method,
+            ssl_method.name,
             label_fraction,
             seed,
         )
@@ -147,7 +147,7 @@ def test_run_benchmark_loads_each_dataset_once(
             "logistic_regression",
             "random_forest",
         ),
-        ssl_methods=("supervised",),
+        ssl_methods=(SSLMethodConfig(name="supervised"),),
         label_fractions=(
             0.1,
             0.5,
@@ -188,7 +188,7 @@ def test_run_benchmark_is_reproducible(
 
     benchmark = BenchmarkConfig(
         models=("random_forest",),
-        ssl_methods=("supervised",),
+        ssl_methods=(SSLMethodConfig(name="supervised"),),
         label_fractions=(0.5,),
         seeds=(42,),
         test_size=0.2,
@@ -235,7 +235,7 @@ def test_run_and_save_benchmark_persists_complete_run(
 
     benchmark = BenchmarkConfig(
         models=("logistic_regression",),
-        ssl_methods=("supervised",),
+        ssl_methods=(SSLMethodConfig(name="supervised"),),
         label_fractions=(0.5,),
         seeds=(42,),
         test_size=0.2,
@@ -272,7 +272,10 @@ def test_run_and_save_benchmark_persists_complete_run(
         "logistic_regression"
     ]
     assert stored_config["benchmark"]["ssl_methods"] == [
-        "supervised"
+        {
+            "name": "supervised",
+            "params": {},
+        }
     ]
     
     with artifacts.results_jsonl.open(

@@ -1,7 +1,7 @@
 """Serialization utilities for validated benchmark configuration."""
 import json
 
-from config.models import BenchmarkConfig, DatasetConfig
+from config.models import BenchmarkConfig, DatasetConfig, SSLMethodConfig
 from config.serialization import serialize_benchmark_config
 
 
@@ -25,7 +25,16 @@ def test_serialize_benchmark_config_preserves_effective_configuration():
             "logistic_regression",
             "random_forest",
         ),
-        ssl_methods=("supervised",),
+        ssl_methods=(
+            SSLMethodConfig(name="supervised"),
+            SSLMethodConfig(
+                name="self_training",
+                params={
+                    "confidence_threshold": 0.95,
+                    "max_iterations": 10,
+                },
+            ),
+        ),
         label_fractions=(0.1, 0.5),
         seeds=(1, 2),
         test_size=0.25,
@@ -55,7 +64,17 @@ def test_serialize_benchmark_config_preserves_effective_configuration():
                 "random_forest",
             ],
             "ssl_methods":[
-                "supervised",    
+                {
+                    "name": "supervised",
+                    "params": {}
+                },
+                {
+                    "name": "self_training",
+                    "params": {
+                        "confidence_threshold": 0.95,
+                        "max_iterations": 10,
+                    },
+                },    
             ],
             "label_fractions": [0.1, 0.5],
             "seeds": [1, 2],
@@ -74,7 +93,7 @@ def test_serialized_benchmark_config_is_json_serializable():
 
     benchmark = BenchmarkConfig(
         models=("logistic_regression",),
-        ssl_methods=("supervised",),
+        ssl_methods=(SSLMethodConfig(name="supervised"),),
         label_fractions=(0.1,),
         seeds=(1,),
         test_size=0.2,
