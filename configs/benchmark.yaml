@@ -13,7 +13,11 @@ models:
   - random_forest
 
 ssl_methods:
-  - supervised
+  - name: supervised
+  - name: self_training
+    params: 
+      confidence_threshold: 0.95
+      max_iterations: 10
 
 label_fractions:
   - 0.05

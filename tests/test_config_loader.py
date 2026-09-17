@@ -9,7 +9,12 @@ from config.loader import (
 
 import pytest
 
-from config.models import BenchmarkConfig
+from config.models import BenchmarkConfig, SSLMethodConfig
+
+@pytest.fixture
+def supervised_ssl_method():
+    """Return a valid supervised SSL method configuration."""
+    return SSLMethodConfig(name="supervised")
 
 def test_load_dataset_configs(tmp_path: Path):
     """A valid dataset YAML file should produce typed configurations."""
@@ -52,7 +57,12 @@ models:
   - random_forest
 
 ssl_methods:
-  - supervised
+  - name: supervised
+
+  - name: self_training
+    params:
+      confidence_threshold: 0.95
+      max_iterations: 10
   
 label_fractions:
   - 0.05
@@ -77,7 +87,20 @@ test_size: 0.25
         0.20,
     )
     assert config.models == ("logistic_regression", "random_forest")
-    assert config.ssl_methods == ("supervised",)
+
+    assert config.ssl_methods == (
+        SSLMethodConfig(
+            name="supervised",
+        ),
+        SSLMethodConfig(
+            name="self_training",
+            params={
+                "confidence_threshold": 0.95,
+                "max_iterations": 10,
+            },
+        ),
+    )
+    
     assert config.seeds == (1, 2, 3)
     assert config.test_size == 0.25
 
@@ -94,7 +117,7 @@ models:
   - logistic_regression
   
 ssl_methods:
-  - supervised
+  - name: supervised
   
 label_fractions:
   - 0.10
@@ -206,7 +229,7 @@ models:
     - logistic_regression
     
 ssl_methods:
-    - supervised
+    - name: supervised
     
 label_fractions:
   - 0.1
@@ -273,7 +296,7 @@ datasets:
     ):
         load_dataset_configs(config_path)
         
-def test_benchmark_config_rejects_empty_models():
+def test_benchmark_config_rejects_empty_models(supervised_ssl_method):
     """At least one benchmark model must be configured."""
     with pytest.raises(
         ValueError,
@@ -281,13 +304,13 @@ def test_benchmark_config_rejects_empty_models():
     ):
         BenchmarkConfig(
             models=(),
-            ssl_methods=("supervised",),
+            ssl_methods=(supervised_ssl_method,),
             label_fractions=(0.1,),
             seeds=(42,),
         )
 
 
-def test_benchmark_config_rejects_duplicate_models():
+def test_benchmark_config_rejects_duplicate_models(supervised_ssl_method):
     """Benchmark model identifiers must be unique."""
     with pytest.raises(
         ValueError,
@@ -298,7 +321,68 @@ def test_benchmark_config_rejects_duplicate_models():
                 "random_forest",
                 "random_forest",
             ),
-            ssl_methods=("supervised",),
+            ssl_methods=(supervised_ssl_method,),
             label_fractions=(0.1,),
             seeds=(42,),
         )
+        
+def test_benchmark_loader_rejects_ssl_method_without_name(
+    tmp_path: Path,
+):
+    """SSL method entries must define a stable method name."""
+    config_path = tmp_path / "benchmark.yaml"
+
+    config_path.write_text(
+        """
+models:
+  - logistic_regression
+
+ssl_methods:
+  - params:
+      confidence_threshold: 0.95
+
+label_fractions:
+  - 0.1
+
+seeds:
+  - 42
+""".strip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Missing required keys",
+    ):
+        load_benchmark_config(config_path)
+        
+def test_benchmark_loader_rejects_unknown_ssl_method_key(
+    tmp_path: Path,
+):
+    """Unknown SSL method configuration keys must not be ignored."""
+    config_path = tmp_path / "benchmark.yaml"
+
+    config_path.write_text(
+        """
+models:
+  - logistic_regression
+
+ssl_methods:
+  - name: self_training
+    paramz:
+      confidence_threshold: 0.95
+
+label_fractions:
+  - 0.1
+
+seeds:
+  - 42
+""".strip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Unknown keys in SSL method entry",
+    ):
+        load_benchmark_config(config_path)

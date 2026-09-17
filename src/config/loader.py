@@ -9,7 +9,7 @@ from typing import Any
 
 import yaml
 
-from config.models import BenchmarkConfig, DatasetConfig
+from config.models import BenchmarkConfig, DatasetConfig, SSLMethodConfig
 
 
 def load_dataset_configs(
@@ -87,7 +87,7 @@ def load_benchmark_config(
     )
 
     models = raw_config["models"]
-    ssl_methods = raw_config["ssl_methods"]
+    ssl_methods = _parse_ssl_methods(raw_config["ssl_methods"])
     label_fractions = raw_config["label_fractions"]
     seeds = raw_config["seeds"]
     
@@ -96,11 +96,6 @@ def load_benchmark_config(
             "'models' must be a list."
         )
         
-    if not isinstance(ssl_methods, list):
-            raise ValueError(
-                "'ssl_methods' must be a list."
-            )
-
     if not isinstance(label_fractions, list):
         raise ValueError(
             "'label_fractions' must be a list."
@@ -113,7 +108,7 @@ def load_benchmark_config(
 
     return BenchmarkConfig(
         models=tuple(models),
-        ssl_methods=tuple(ssl_methods),
+        ssl_methods=ssl_methods,
         label_fractions=tuple(label_fractions),
         seeds=tuple(seeds),
         test_size=raw_config.get("test_size", 0.2),
@@ -161,6 +156,50 @@ def _load_yaml_mapping(
 
     return data
 
+def _parse_ssl_methods(
+    raw_methods: Any,
+) -> tuple[SSLMethodConfig, ...]:
+    """Parse SSL method configurations from YAML data.
+
+    Args:
+        raw_methods: Raw SSL method entries loaded from YAML.
+
+    Returns:
+        tuple[SSLMethodConfig, ...]: Validated SSL method configurations.
+    """
+    if not isinstance(raw_methods, list):
+        raise ValueError("'ssl_methods' must be a list.")
+
+    if not raw_methods:
+        raise ValueError(
+            "'ssl_methods' must contain at least one method."
+        )
+
+    methods: list[SSLMethodConfig] = []
+
+    for index, raw_method in enumerate(raw_methods):
+        if not isinstance(raw_method, dict):
+            raise ValueError(
+                f"SSL method entry at index {index} must be a mapping."
+            )
+
+        _validate_keys(
+            raw_method,
+            required={"name"},
+            allowed={"name", "params"},
+            context=f"SSL method entry at index {index}",
+        )
+
+        params = raw_method.get("params", {})
+
+        methods.append(
+            SSLMethodConfig(
+                name=raw_method["name"],
+                params=params,
+            )
+        )
+
+    return tuple(methods)
 
 def _parse_dataset_config(
     raw_dataset: Any,

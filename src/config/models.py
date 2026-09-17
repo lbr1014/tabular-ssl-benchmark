@@ -37,11 +37,34 @@ class DatasetConfig:
             raise TypeError("enabled must be a boolean.")
         
 @dataclass(frozen=True)
+class SSLMethodConfig:
+    """Configuration for a semi-supervised learning strategy.
+
+    Attributes:
+        name: Stable identifier of the SSL strategy.
+        params: Strategy-specific hyperparameters.
+    """
+
+    name: str
+    params: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        """Validate the SSL method configuration."""
+        if not isinstance(self.name, str):
+            raise TypeError("name must be a string.")
+
+        if not self.name.strip():
+            raise ValueError("name must not be empty.")
+
+        if not isinstance(self.params, dict):
+            raise TypeError("params must be a dictionary.")
+        
+@dataclass(frozen=True)
 class BenchmarkConfig:
     """Configuration describing the benchmark experiment grid."""
 
     models: tuple[str, ...]
-    ssl_methods: tuple[str, ...]
+    ssl_methods: tuple[SSLMethodConfig, ...]
     label_fractions: tuple[float, ...]
     seeds: tuple[int, ...]
     test_size: float = 0.2
@@ -81,7 +104,7 @@ class BenchmarkConfig:
             )
             
     def _validate_ssl_methods(self) -> None:
-        """Validate benchmark SSL method identifiers."""
+        """Validate benchmark SSL method configurations."""
         if not isinstance(self.ssl_methods, tuple):
             raise TypeError("ssl_methods must be a tuple.")
 
@@ -90,20 +113,22 @@ class BenchmarkConfig:
                 "ssl_methods must contain at least one method."
             )
 
-        for method_name in self.ssl_methods:
-            if not isinstance(method_name, str):
-                raise TypeError(
-                    "ssl_methods must contain string values."
-                )
+        if not all(
+            isinstance(method, SSLMethodConfig)
+            for method in self.ssl_methods
+        ):
+            raise TypeError(
+                "ssl_methods must contain SSLMethodConfig instances."
+            )
 
-            if not method_name.strip():
-                raise ValueError(
-                    "ssl_methods must not contain empty names."
-                )
+        names = tuple(
+            method.name
+            for method in self.ssl_methods
+        )
 
-        if len(set(self.ssl_methods)) != len(self.ssl_methods):
+        if len(names) != len(set(names)):
             raise ValueError(
-                "ssl_methods must not contain duplicate values."
+                "ssl_methods must contain unique method names."
             )
     
     def _validate_label_fractions(self) -> None:
@@ -175,25 +200,3 @@ class BenchmarkConfig:
                 "test_size must be in the interval (0, 1)."
             )
             
-@dataclass(frozen=True)
-class SSLMethodConfig:
-    """Configuration for a semi-supervised learning strategy.
-
-    Attributes:
-        name: Stable identifier of the SSL strategy.
-        params: Strategy-specific hyperparameters.
-    """
-
-    name: str
-    params: dict[str, Any] = field(default_factory=dict)
-
-    def __post_init__(self) -> None:
-        """Validate the SSL method configuration."""
-        if not isinstance(self.name, str):
-            raise TypeError("name must be a string.")
-
-        if not self.name.strip():
-            raise ValueError("name must not be empty.")
-
-        if not isinstance(self.params, dict):
-            raise TypeError("params must be a dictionary.")
