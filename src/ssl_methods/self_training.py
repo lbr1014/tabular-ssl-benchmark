@@ -31,6 +31,14 @@ class SelfTrainingMethod(SSLMethod):
         """Return the stable identifier of the learning strategy."""
         return "self_training"
     
+    @property
+    def params(self) -> dict[str, object]:
+        """Return the effective self-training configuration."""
+        return {
+            "confidence_threshold": self.confidence_threshold,
+            "max_iterations": self.max_iterations,
+        }
+    
     def __post_init__(self) -> None:
         """Validate self-training hyperparameters."""
         if (
@@ -73,7 +81,7 @@ class SelfTrainingMethod(SSLMethod):
         model: Benchmark classifier to train.
         X_labeled: Feature matrix containing labeled training samples.
         y_labeled: Ground-truth labels for the labeled training samples.
-        X_unlabeled: Feature matrix containing unlabeled training samples.
+        x_unlabeled: Feature matrix containing unlabeled training samples.
 
     Returns:
         BenchmarkClassifier: The fitted classifier instance.

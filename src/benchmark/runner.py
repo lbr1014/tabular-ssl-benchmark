@@ -164,6 +164,7 @@ def run_experiment(
         dataset_name=dataset.name,
         model_name=model.name,
         ssl_method=ssl_method.name,
+        ssl_params=ssl_method.params,
         label_fraction=label_fraction,
         seed=seed,
         test_size=test_size,

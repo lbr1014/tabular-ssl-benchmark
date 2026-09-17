@@ -18,6 +18,11 @@ class SupervisedMethod(SSLMethod):
             str: Stable identifier of the supervised strategy.
         """
         return "supervised"
+    
+    @property
+    def params(self) -> dict[str, object]:
+        """Return the effective supervised strategy configuration."""
+        return {}
 
     def fit(
         self,
