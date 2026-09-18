@@ -2,7 +2,7 @@ models:
   - logistic_regression
 
 ssl_methods:
-  - supervised
+  - name: supervised
 
 label_fractions:
   - 0.5
