@@ -23,6 +23,10 @@ class SupervisedMethod(SSLMethod):
     def params(self) -> dict[str, object]:
         """Return the effective supervised strategy configuration."""
         return {}
+    
+    @property
+    def requires_base_model(self) -> bool:
+        return True
 
     def fit(
         self,

@@ -38,6 +38,10 @@ class SelfTrainingMethod(SSLMethod):
             "confidence_threshold": self.confidence_threshold,
             "max_iterations": self.max_iterations,
         }
+        
+    @property
+    def requires_base_model(self) -> bool:
+        return True
     
     def __post_init__(self) -> None:
         """Validate self-training hyperparameters."""

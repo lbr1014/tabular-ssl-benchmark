@@ -34,6 +34,10 @@ def test_complete_ssl_method_can_be_instantiated() -> None:
         @property
         def params(self) -> dict[str, object]:
             return {}
+        
+        @property
+        def requires_base_model(self) -> bool:
+            return True
 
         def fit(
             self,
@@ -48,7 +52,33 @@ def test_complete_ssl_method_can_be_instantiated() -> None:
     method = CompleteSSLMethod()
 
     assert method.name == "complete"
+    assert method.requires_base_model is True
     
+def test_ssl_method_without_model_requirement_cannot_be_instantiated() -> None:
+    """SSL strategies should declare whether they require a base model."""
+
+    class MissingRequirementSSLMethod(SSLMethod):
+        @property
+        def name(self) -> str:
+            return "missing_requirement"
+
+        @property
+        def params(self) -> dict[str, object]:
+            return {}
+
+        def fit(
+            self,
+            *,
+            model,
+            x_labeled,
+            y_labeled,
+            x_unlabeled,
+        ):
+            return model
+
+    with pytest.raises(TypeError):
+        MissingRequirementSSLMethod()
+            
 def test_create_self_training_method() -> None:
     """Factory should create the self-training SSL strategy."""
     method = create_ssl_method("self_training")

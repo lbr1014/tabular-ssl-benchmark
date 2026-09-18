@@ -224,3 +224,8 @@ def test_self_training_exposes_default_parameters() -> None:
         "max_iterations": 10,
     }
     
+def test_self_training_requires_base_model() -> None:
+    """Self-training should require a base classifier."""
+    method = SelfTrainingMethod()
+
+    assert method.requires_base_model is True

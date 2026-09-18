@@ -98,3 +98,9 @@ def test_supervised_method_has_no_ssl_parameters() -> None:
     method = SupervisedMethod()
 
     assert method.params == {}
+    
+def test_supervised_method_requires_base_model() -> None:
+    """Supervised reference strategy should require a base classifier."""
+    method = SupervisedMethod()
+
+    assert method.requires_base_model is True

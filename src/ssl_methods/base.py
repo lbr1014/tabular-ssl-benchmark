@@ -30,6 +30,11 @@ class SSLMethod(ABC):
     def params(self) -> dict[str, Any]:
         """Return the effective configuration of the learning strategy."""
         raise NotImplementedError
+    
+    @property
+    @abstractmethod
+    def requires_base_model(self) -> bool:
+        """Return whether the SSL strategy requires a base classifier."""
 
     @abstractmethod
     def fit(
