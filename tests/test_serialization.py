@@ -61,6 +61,7 @@ def test_serialize_experiment_result_contains_configuration(
     assert record["ssl_method"] == (
         experiment_result.config.ssl_method
     )
+    assert record["ssl_params"] == {}
     assert record["label_fraction"] == (
         experiment_result.config.label_fraction
     )
@@ -144,3 +145,29 @@ def test_serialize_experiment_result_rejects_metrics_collisions(
         serialize_experiment_result(
             conflicting_result,
         )
+        
+def test_serialize_experiment_result_preserves_ssl_parameters(
+    experiment_result,
+):
+    """Serialized results should preserve effective SSL parameters."""
+    config = replace(
+        experiment_result.config,
+        ssl_method="self_training",
+        ssl_params={
+            "confidence_threshold": 0.95,
+            "max_iterations": 10,
+        },
+    )
+
+    result = replace(
+        experiment_result,
+        config=config,
+    )
+
+    record = serialize_experiment_result(result)
+
+    assert record["ssl_method"] == "self_training"
+    assert record["ssl_params"] == {
+        "confidence_threshold": 0.95,
+        "max_iterations": 10,
+    }
