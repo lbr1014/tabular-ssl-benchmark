@@ -1,0 +1,20 @@
+models:
+  - logistic_regression
+  - random_forest
+
+ssl_methods:
+  - name: supervised
+
+  - name: self_training
+    params:
+      confidence_threshold: 0.95
+      max_iterations: 10
+
+label_fractions:
+  - 0.1
+  - 0.5
+
+seeds:
+  - 42
+
+test_size: 0.2
