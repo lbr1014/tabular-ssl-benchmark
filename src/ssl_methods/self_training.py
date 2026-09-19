@@ -83,7 +83,7 @@ class SelfTrainingMethod(SSLMethod):
         
         Args:
         model: Benchmark classifier to train.
-        X_labeled: Feature matrix containing labeled training samples.
+        x_labeled: Feature matrix containing labeled training samples.
         y_labeled: Ground-truth labels for the labeled training samples.
         x_unlabeled: Feature matrix containing unlabeled training samples.
 
