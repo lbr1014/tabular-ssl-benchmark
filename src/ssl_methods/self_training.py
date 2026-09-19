@@ -41,6 +41,7 @@ class SelfTrainingMethod(SSLMethod):
         
     @property
     def requires_base_model(self) -> bool:
+        """Return whether the strategy requires a benchmark classifier."""
         return True
     
     def __post_init__(self) -> None:

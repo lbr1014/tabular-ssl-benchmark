@@ -35,6 +35,7 @@ class SSLMethod(ABC):
     @abstractmethod
     def requires_base_model(self) -> bool:
         """Return whether the SSL strategy requires a base classifier."""
+        raise NotImplementedError
 
     @abstractmethod
     def fit(
