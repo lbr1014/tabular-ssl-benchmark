@@ -9,18 +9,21 @@ import pytest
 from benchmark.experiment import ExperimentConfig, ExperimentResult
 from benchmark.persistence import save_benchmark_config, save_benchmark_results, save_benchmark_run, save_run_metadata
 from benchmark.metadata import BenchmarkRunMetadata
-from config.models import BenchmarkConfig, DatasetConfig
+from config.models import BenchmarkConfig, DatasetConfig, SSLMethodConfig
 from config.serialization import serialize_benchmark_config
 
 def _create_result(
     *,
     seed: int = 42,
+    ssl_method: str = "supervise",
+    ssl_params: dict[str, object] | None = None,
 ) -> ExperimentResult:
     """Create a representative experiment result for persistence tests."""
     config = ExperimentConfig(
         dataset_name="iris",
         model_name="logistic_regression",
-        ssl_method="supervised",
+        ssl_method=ssl_method,
+        ssl_params={} if ssl_params is None else ssl_params,
         label_fraction=0.5,
         seed=seed,
         test_size=0.2,
@@ -71,6 +74,7 @@ def _create_benchmark_config() -> BenchmarkConfig:
     """Create representative benchmark configuration for persistence tests."""
     return BenchmarkConfig(
         models=("logistic_regression",),
+        ssl_methods=(SSLMethodConfig(name="supervised"),),
         label_fractions=(0.5,),
         seeds=(1, 2),
         test_size=0.2,
@@ -393,3 +397,100 @@ def test_save_benchmark_run_rejects_inconsistent_experiment_count(
     assert not (tmp_path / "results.csv").exists()
     assert not (tmp_path / "metadata.json").exists()
     assert not (tmp_path / "config.json").exists()
+    
+def test_save_benchmark_results_preserves_ssl_params_in_jsonl(
+    tmp_path,
+):
+    """JSONL results should preserve SSL parameters as structured data."""
+    result = _create_result(
+        ssl_method="self_training",
+        ssl_params={
+            "confidence_threshold": 0.95,
+            "max_iterations": 10,
+        },
+    )
+
+    jsonl_path, _ = save_benchmark_results(
+        (result,),
+        tmp_path,
+    )
+
+    with jsonl_path.open(
+        "r",
+        encoding="utf-8",
+    ) as file:
+        record = json.loads(file.readline())
+
+    assert record["ssl_params"] == {
+        "confidence_threshold": 0.95,
+        "max_iterations": 10,
+    }
+    
+def test_save_benchmark_results_preserves_ssl_params_in_csv(
+    tmp_path,
+):
+    """CSV results should preserve SSL parameters as recoverable JSON."""
+    result = _create_result(
+        ssl_method="self_training",
+        ssl_params={
+            "confidence_threshold": 0.95,
+            "max_iterations": 10,
+        },
+    )
+
+    _, csv_path = save_benchmark_results(
+        (result,),
+        tmp_path,
+    )
+
+    with csv_path.open(
+        "r",
+        encoding="utf-8",
+        newline="",
+    ) as file:
+        record = next(csv.DictReader(file))
+
+    assert json.loads(record["ssl_params"]) == {
+        "confidence_threshold": 0.95,
+        "max_iterations": 10,
+    }
+    
+def test_csv_ssl_params_are_serialized_deterministically(
+    tmp_path,
+):
+    """Equivalent SSL parameter mappings should have identical CSV values."""
+    first_params = {
+        "confidence_threshold": 0.95,
+        "max_iterations": 10,
+    }
+
+    second_params = {
+        "max_iterations": 10,
+        "confidence_threshold": 0.95,
+    }
+
+    first_result = _create_result(
+        seed=1,
+        ssl_method="self_training",
+        ssl_params=first_params,
+    )
+
+    second_result = _create_result(
+        seed=2,
+        ssl_method="self_training",
+        ssl_params=second_params,
+    )
+
+    _, csv_path = save_benchmark_results(
+        (first_result, second_result),
+        tmp_path,
+    )
+
+    with csv_path.open(
+        "r",
+        encoding="utf-8",
+        newline="",
+    ) as file:
+        records = list(csv.DictReader(file))
+
+    assert records[0]["ssl_params"] == records[1]["ssl_params"]

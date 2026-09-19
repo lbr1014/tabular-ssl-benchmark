@@ -1,14 +1,14 @@
 """Experiment matrix generation utilities.
 
 This module expands benchmark-wide configuration values into concrete
-dataset-level experimental specifications. The generated specifications describe dataset, label fraction, random
-seed, and test split combinations.
+dataset-level experimental specifications. The generated specifications describe dataset, 
+model, SSL method, label fraction, random seed, and test split combinations.
 """
 
 from dataclasses import dataclass
 from itertools import product
 
-from config.models import BenchmarkConfig, DatasetConfig
+from config.models import BenchmarkConfig, DatasetConfig, SSLMethodConfig
 
 
 @dataclass(frozen=True)
@@ -17,6 +17,7 @@ class ExperimentSpec:
 
     dataset: DatasetConfig
     model_name: str
+    ssl_method: SSLMethodConfig
     label_fraction: float
     seed: int
     test_size: float
@@ -31,6 +32,7 @@ class ExperimentSpec:
         return (
             f"{self.dataset.name}"
             f"__model-{self.model_name}"
+            f"__ssl-{self.ssl_method.name}"
             f"__lf-{self.label_fraction:g}"
             f"__test-{self.test_size:g}"
             f"__seed-{self.seed}"
@@ -70,6 +72,7 @@ def generate_experiment_matrix(
     combinations = product(
         enabled_datasets,
         benchmark.models,
+        benchmark.ssl_methods,
         benchmark.label_fractions,
         benchmark.seeds,
     )
@@ -78,11 +81,12 @@ def generate_experiment_matrix(
         ExperimentSpec(
             dataset=dataset,
             model_name=model_name,
+            ssl_method=ssl_method,
             label_fraction=label_fraction,
             seed=seed,
             test_size=benchmark.test_size,
         )
-        for dataset, model_name, label_fraction, seed in combinations
+        for dataset, model_name, ssl_method, label_fraction, seed in combinations
     )
 
 

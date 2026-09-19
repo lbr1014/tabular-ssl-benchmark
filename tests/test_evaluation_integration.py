@@ -77,7 +77,7 @@ def _run_baseline_pipeline(
         seed=seed,
     )
 
-    X_labeled = dataset.X.iloc[
+    x_labeled = dataset.X.iloc[
         split.labeled_indices
     ]
 
@@ -98,9 +98,9 @@ def _run_baseline_pipeline(
         categorical_features=dataset.categorical_features,
     )
 
-    X_labeled_transformed = fit_transform_tabular(
+    x_labeled_transformed = fit_transform_tabular(
         preprocessor,
-        X_labeled,
+        x_labeled,
     )
 
     X_test_transformed = transform_tabular(
@@ -113,7 +113,7 @@ def _run_baseline_pipeline(
     )
 
     model.fit(
-        X_labeled_transformed,
+        x_labeled_transformed,
         y_labeled.to_numpy(),
     )
 

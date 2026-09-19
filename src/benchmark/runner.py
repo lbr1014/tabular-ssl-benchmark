@@ -1,7 +1,7 @@
 """Execution utilities for benchmark experiments.
 This module orchestrates dataset splitting, leakage-safe preprocessing,
-model fitting, prediction, and evaluation for a single supervised
-benchmark experiment.
+learning-strategy execution, prediction, and evaluation for benchmark
+experiments.
 """
 
 from time import perf_counter
@@ -27,23 +27,28 @@ from config.matrix import ExperimentSpec
 from models.factory import create_classifier
 from collections.abc import Mapping
 
-def run_supervised_experiment(
+from ssl_methods.base import SSLMethod
+from ssl_methods.factory import create_ssl_method
+
+def run_experiment(
     *,
     dataset: TabularDataset,
     model: BenchmarkClassifier,
+    ssl_method: SSLMethod,
     label_fraction: float,
     test_size: float,
     seed: int,
 ) -> ExperimentResult:
-    """Run one supervised baseline experiment.
-    The experiment creates a deterministic semi-supervised split but
-    trains the supervised baseline exclusively on the labelled training
-    subset. Preprocessing is also fitted only on labelled data to prevent
-    information leakage from unlabeled or held-out test samples.
-
+    """Run one benchmark experiment.
+    The experiment creates a deterministic semi-supervised split, applies
+    leakage-safe preprocessing, delegates model fitting to the selected learning
+    strategy, and evaluates the fitted classifier exclusively on the held-out
+    test partition.
+        
     Args:
         dataset (TabularDataset): Dataset used by the experiment.
         model (BenchmarkClassifier): Classifier implementing the benchmark model interface.
+        ssl_method (SSLMethod): Semi-supervised learning method to evaluate.
         label_fraction (float): Fraction of the training partition whose labels are available.
         test_size (float): Fraction of the complete dataset reserved for held-out testing.
         seed (int): Root random seed controlling the experiment split and model.
@@ -60,15 +65,19 @@ def run_supervised_experiment(
         seed=seed,
     )
     
-    X_labeled = dataset.X.iloc[
+    x_labeled = dataset.X.iloc[
         split.labeled_indices
+    ]
+    
+    x_unlabeled = dataset.X.iloc[
+        split.unlabeled_indices
     ]
 
     y_labeled = dataset.y.iloc[
         split.labeled_indices
     ]
 
-    X_test = dataset.X.iloc[
+    x_test = dataset.X.iloc[
         split.test_indices
     ]
 
@@ -81,33 +90,43 @@ def run_supervised_experiment(
         categorical_features=dataset.categorical_features,
     )
 
-    X_labeled_transformed = fit_transform_tabular(
+    x_labeled_transformed = fit_transform_tabular(
         preprocessor,
-        X_labeled,
+        x_labeled,
     )
+    
+    if len(x_unlabeled) > 0:
+        x_unlabeled_transformed = transform_tabular(
+            preprocessor,
+            x_unlabeled,
+        )
+    else:
+        x_unlabeled_transformed = x_labeled_transformed[:0].copy()
 
-    X_test_transformed = transform_tabular(
+    x_test_transformed = transform_tabular(
         preprocessor,
-        X_test,
+        x_test,
     )
     
     fit_start = perf_counter()
 
-    model.fit(
-        X_labeled_transformed,
-        y_labeled.to_numpy(),
+    fitted_model = ssl_method.fit(
+        model=model,
+        x_labeled=x_labeled_transformed,
+        y_labeled=y_labeled.to_numpy(),
+        x_unlabeled=x_unlabeled_transformed,
     )
 
     fit_time = perf_counter() - fit_start
     
     predict_start = perf_counter()
 
-    predictions = model.predict(
-        X_test_transformed
+    predictions = fitted_model.predict(
+        x_test_transformed
     )
 
-    probabilities = model.predict_proba(
-        X_test_transformed
+    probabilities = fitted_model.predict_proba(
+        x_test_transformed
     )
 
     predict_time = (
@@ -129,7 +148,7 @@ def run_supervised_experiment(
         compute_probabilistic_metrics(
             y_test_array,
             probabilities,
-            model.classes_,
+            fitted_model.classes_,
         )
     )
 
@@ -137,14 +156,15 @@ def run_supervised_experiment(
         compute_calibration_metrics(
             y_test_array,
             probabilities,
-            model.classes_,
+            fitted_model.classes_,
         )
     )
     
     config = ExperimentConfig(
         dataset_name=dataset.name,
         model_name=model.name,
-        ssl_method="supervised",
+        ssl_method=ssl_method.name,
+        ssl_params=ssl_method.params,
         label_fraction=label_fraction,
         seed=seed,
         test_size=test_size,
@@ -166,14 +186,48 @@ def run_supervised_experiment(
         },
     )
     
+def run_supervised_experiment(
+    *,
+    dataset: TabularDataset,
+    model: BenchmarkClassifier,
+    label_fraction: float,
+    test_size: float,
+    seed: int,
+) -> ExperimentResult:
+    """Run one supervised reference experiment.
+    This compatibility wrapper delegates execution to the generic experiment
+    runner using the supervised learning strategy.
+
+    Args:
+        dataset: Dataset used by the experiment.
+        model: Classifier implementing the benchmark model interface.
+        label_fraction: Fraction of the training partition whose labels are
+            available.
+        test_size: Fraction of the complete dataset reserved for held-out
+            testing.
+        seed: Root random seed controlling the experiment split and model.
+
+    Returns:
+        ExperimentResult: Result produced by the supervised reference
+        strategy.
+    """
+    return run_experiment(
+        dataset=dataset,
+        model=model,
+        ssl_method=create_ssl_method("supervised"),
+        label_fraction=label_fraction,
+        test_size=test_size,
+        seed=seed,
+    )
+    
 def run_experiment_spec(
     spec: ExperimentSpec,
     dataset: TabularDataset,
 ) -> ExperimentResult:
     """Execute one experiment specification on a loaded dataset.
-    The classifier is created from the model identifier and experiment
-    seed stored in the specification. The experiment is then delegated
-    to the supervised experiment runner.
+    The classifier and learning strategy are created from the identifiers
+    stored in the experiment specification. Execution is then delegated to
+    the generic experiment runner.
 
     Args:
         spec (ExperimentSpec): Experimental specification to execute.
@@ -181,8 +235,8 @@ def run_experiment_spec(
             experiment.
 
     Returns:
-        ExperimentResult: Result produced by the supervised experiment.
-
+        ExperimentResult: Result produced by the configured experiment.
+        
     Raises:
         ValueError: If the loaded dataset does not match the dataset
             requested by the experiment specification.
@@ -198,10 +252,16 @@ def run_experiment_spec(
         spec.model_name,
         seed=spec.seed,
     )
+    
+    ssl_method = create_ssl_method(
+        spec.ssl_method.name,
+        **spec.ssl_method.params,
+    )
 
-    return run_supervised_experiment(
+    return run_experiment(
         dataset=dataset,
         model=model,
+        ssl_method=ssl_method,
         label_fraction=spec.label_fraction,
         seed=spec.seed,
         test_size=spec.test_size,

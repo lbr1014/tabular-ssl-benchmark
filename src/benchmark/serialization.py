@@ -24,6 +24,7 @@ def serialize_experiment_result(
         "dataset_name": result.config.dataset_name,
         "model_name": result.config.model_name,
         "ssl_method": result.config.ssl_method,
+        "ssl_params": dict(result.config.ssl_params),
         "label_fraction": result.config.label_fraction,
         "seed": result.config.seed,
         "test_size": result.config.test_size,

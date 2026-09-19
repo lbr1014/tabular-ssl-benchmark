@@ -104,6 +104,14 @@ def _write_csv(
     """
     fieldnames = list(records[0].keys())
 
+    csv_records = [
+        {
+            key: _serialize_csv_value(value)
+            for key, value in record.items()
+        }
+        for record in records
+    ]
+
     with path.open(
         "w",
         encoding="utf-8",
@@ -115,8 +123,27 @@ def _write_csv(
         )
 
         writer.writeheader()
-        writer.writerows(records)
+        writer.writerows(csv_records)
         
+def _serialize_csv_value(value: Any) -> Any:
+    """Convert complex values into deterministic CSV-compatible values.
+
+    Args:
+        value: Serialized experiment value.
+
+    Returns:
+        A scalar value suitable for CSV persistence.
+    """
+    if isinstance(value, dict):
+        return json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        )
+
+    return value        
+
 def _validate_record_schema(
     records: list[dict[str, Any]],
 ) -> None:

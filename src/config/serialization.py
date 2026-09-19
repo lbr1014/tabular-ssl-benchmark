@@ -32,6 +32,13 @@ def serialize_benchmark_config(
         ],
         "benchmark": {
             "models": list(benchmark.models),
+            "ssl_methods": [
+                {
+                    "name": method.name,
+                    "params": dict(method.params),
+                }
+                for method in benchmark.ssl_methods
+            ],
             "label_fractions": list(
                 benchmark.label_fractions
             ),

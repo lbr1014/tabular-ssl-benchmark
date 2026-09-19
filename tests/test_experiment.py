@@ -17,7 +17,7 @@ def test_experiment_id_supervised():
 
     assert (
         config.experiment_id
-        == "adult__tabpfn__supervised__lf-0.1__test-0.2__seed-42"
+        == "adult__model-tabpfn__ssl-supervised__lf-0.1__test-0.2__seed-42"
     )
 
 
@@ -33,7 +33,7 @@ def test_experiment_id_ssl():
 
     assert (
         config.experiment_id
-        == "adult__random_forest__self_training__lf-0.05__test-0.2__seed-1"
+        == "adult__model-random_forest__ssl-self_training__lf-0.05__test-0.2__seed-1"
     )
 
 
@@ -82,3 +82,92 @@ def test_experiment_id_changes_with_test_size():
     )
 
     assert first.experiment_id != second.experiment_id
+
+def test_experiment_id_changes_with_ssl_parameters():
+    """Different SSL hyperparameters should produce different IDs."""
+    first = ExperimentConfig(
+        dataset_name="adult",
+        model_name="random_forest",
+        ssl_method="self_training",
+        ssl_params={
+            "confidence_threshold": 0.95,
+            "max_iterations": 10,
+        },
+        label_fraction=0.1,
+        seed=42,
+        test_size=0.2,
+    )
+
+    second = ExperimentConfig(
+        dataset_name="adult",
+        model_name="random_forest",
+        ssl_method="self_training",
+        ssl_params={
+            "confidence_threshold": 0.80,
+            "max_iterations": 10,
+        },
+        label_fraction=0.1,
+        seed=42,
+        test_size=0.2,
+    )
+
+    assert first.experiment_id != second.experiment_id
+
+def test_experiment_id_is_independent_of_ssl_parameter_order():
+    """SSL parameter insertion order should not affect experiment IDs."""
+    first = ExperimentConfig(
+        dataset_name="adult",
+        model_name="random_forest",
+        ssl_method="self_training",
+        ssl_params={
+            "confidence_threshold": 0.95,
+            "max_iterations": 10,
+        },
+        label_fraction=0.1,
+        seed=42,
+        test_size=0.2,
+    )
+
+    second = ExperimentConfig(
+        dataset_name="adult",
+        model_name="random_forest",
+        ssl_method="self_training",
+        ssl_params={
+            "max_iterations": 10,
+            "confidence_threshold": 0.95,
+        },
+        label_fraction=0.1,
+        seed=42,
+        test_size=0.2,
+    )
+
+    assert first.experiment_id == second.experiment_id
+    
+def test_experiment_id_with_ssl_parameters_is_deterministic():
+    """Equal SSL configurations should produce identical experiment IDs."""
+    params = {
+        "confidence_threshold": 0.95,
+        "max_iterations": 10,
+    }
+
+    first = ExperimentConfig(
+        dataset_name="adult",
+        model_name="random_forest",
+        ssl_method="self_training",
+        ssl_params=params.copy(),
+        label_fraction=0.1,
+        seed=42,
+        test_size=0.2,
+    )
+
+    second = ExperimentConfig(
+        dataset_name="adult",
+        model_name="random_forest",
+        ssl_method="self_training",
+        ssl_params=params.copy(),
+        label_fraction=0.1,
+        seed=42,
+        test_size=0.2,
+    )
+
+    assert first.experiment_id == second.experiment_id

@@ -74,7 +74,7 @@ def _prepare_supervised_split(
         seed=seed,
     )
 
-    X_labeled = dataset.X.iloc[
+    x_labeled = dataset.X.iloc[
         split.labeled_indices
     ]
     y_labeled = dataset.y.iloc[
@@ -93,9 +93,9 @@ def _prepare_supervised_split(
         categorical_features=dataset.categorical_features,
     )
 
-    X_labeled_transformed = fit_transform_tabular(
+    x_labeled_transformed = fit_transform_tabular(
         preprocessor,
-        X_labeled,
+        x_labeled,
     )
 
     X_test_transformed = transform_tabular(
@@ -104,7 +104,7 @@ def _prepare_supervised_split(
     )
 
     return (
-        X_labeled_transformed,
+        x_labeled_transformed,
         y_labeled.to_numpy(),
         X_test_transformed,
         y_test.to_numpy(),

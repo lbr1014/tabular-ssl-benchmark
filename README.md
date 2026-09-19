@@ -23,7 +23,7 @@ The benchmark infrastructure currently supports reproducible supervised baseline
 - YAML-based experiment configuration.
 - OpenML dataset loading.
 - Deterministic train/test and labeled/unlabeled splits.
-- Supervised baseline model execution.
+- Supervised and semi-supervised baseline model execution.
 - Classification, probabilistic, and calibration metrics.
 - Experiment result serialization.
 - Benchmark-level metadata and configuration persistence.
@@ -52,7 +52,7 @@ tabular-ssl-benchmark/
 │   ├── datasets/       # Dataset loading and reproducible splitting
 │   ├── evaluation/     # Classification and calibration metrics
 │   ├── models/         # Benchmark model interfaces and implementations
-│   ├── ssl/            # Semi-supervised learning methods
+│   ├── ssl_methods/            # Supervised and semi-supervised learning methods
 │   └── utils/          # Shared reproducibility utilities
 ├── tests/
 │   ├── config/
@@ -61,6 +61,7 @@ tabular-ssl-benchmark/
 ├── pyproject.toml
 └── README.md
 ```
+
 ## Installation
 
 Clone the repository and create a Python virtual environment:
@@ -118,7 +119,7 @@ Each persisted benchmark run generates the following artifacts in ```results/my-
 
 ## Reproducibility
 
-The benchmark is designed around deterministic and traceable experiment execution. 
+The benchmark is designed around deterministic and traceable experiment execution.
 
 - Random seeds are propagated through dataset splitting and model creation. For a fixed dataset, configuration and seed, experiments use the same train/test and labeled/unlabeled partitions.
 
@@ -131,6 +132,7 @@ The benchmark is designed around deterministic and traceable experiment executio
 ## Testing
 
 Run test suite with:
+
 ```bash
 python -m pytest -v
 ```
