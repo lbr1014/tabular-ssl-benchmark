@@ -186,7 +186,7 @@ def _parse_ssl_methods(
         _validate_keys(
             raw_method,
             required={"name"},
-            allowed={"name", "params"},
+            allowed={"name", "requires_base_model", "params"},
             context=f"SSL method entry at index {index}",
         )
 
@@ -195,6 +195,10 @@ def _parse_ssl_methods(
         methods.append(
             SSLMethodConfig(
                 name=raw_method["name"],
+                requires_base_model=raw_method.get(
+                    "requires_base_model",
+                    True,
+                ),
                 params=params,
             )
         )

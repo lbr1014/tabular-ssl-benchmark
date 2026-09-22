@@ -42,10 +42,13 @@ class SSLMethodConfig:
 
     Attributes:
         name: Stable identifier of the SSL strategy.
+        requires_base_model: Whether the strategy is combined with each
+            configured benchmark classifier.
         params: Strategy-specific hyperparameters.
     """
 
     name: str
+    requires_base_model: bool = True
     params: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -56,6 +59,9 @@ class SSLMethodConfig:
         if not self.name.strip():
             raise ValueError("name must not be empty.")
 
+        if not isinstance(self.requires_base_model, bool):
+            raise TypeError("requires_base_model must be a boolean.")
+        
         if not isinstance(self.params, dict):
             raise TypeError("params must be a dictionary.")
         

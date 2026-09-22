@@ -14,10 +14,21 @@ models:
 
 ssl_methods:
   - name: supervised
+    requires_base_model: true
+
   - name: self_training
+    requires_base_model: true
     params: 
       confidence_threshold: 0.95
       max_iterations: 10
+
+  - name: label_spreading
+    requires_base_model: false
+    params:
+      kernel: knn
+      n_neighbors: 7
+      alpha: 0.2
+      max_iterations: 30
 
 label_fractions:
   - 0.05
