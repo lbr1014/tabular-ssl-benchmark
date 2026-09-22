@@ -319,3 +319,77 @@ def test_matrix_preserves_ssl_method_parameters(
         spec.ssl_method == self_training
         for spec in matrix
     )
+    
+def test_standalone_ssl_method_is_not_repeated_per_base_model():
+    """Standalone SSL methods should generate one experiment per split."""
+    datasets = (
+        DatasetConfig(
+            name="iris",
+            openml_id=61,
+        ),
+    )
+
+    benchmark = BenchmarkConfig(
+        models=(
+            "logistic_regression",
+            "random_forest",
+        ),
+        ssl_methods=(
+            SSLMethodConfig(
+                name="label_spreading",
+                requires_base_model=False,
+            ),
+        ),
+        label_fractions=(0.1,),
+        seeds=(42,),
+        test_size=0.2,
+    )
+
+    matrix = generate_experiment_matrix(
+        datasets,
+        benchmark,
+    )
+
+    assert len(matrix) == 1
+    assert matrix[0].model_name is None
+    assert matrix[0].spec_id == (
+        "iris__model-standalone"
+        "__ssl-label_spreading"
+        "__lf-0.1"
+        "__test-0.2"
+        "__seed-42"
+    )
+    
+def test_model_dependent_ssl_method_is_combined_with_all_models():
+    """Model-dependent SSL methods should use every configured model."""
+    datasets = (
+        DatasetConfig(
+            name="iris",
+            openml_id=61,
+        ),
+    )
+
+    benchmark = BenchmarkConfig(
+        models=(
+            "logistic_regression",
+            "random_forest",
+        ),
+        ssl_methods=(
+            SSLMethodConfig(
+                name="self_training",
+                requires_base_model=True,
+            ),
+        ),
+        label_fractions=(0.1,),
+        seeds=(42,),
+    )
+
+    matrix = generate_experiment_matrix(
+        datasets,
+        benchmark,
+    )
+
+    assert [spec.model_name for spec in matrix] == [
+        "logistic_regression",
+        "random_forest",
+    ]
