@@ -386,3 +386,48 @@ seeds:
         match="Unknown keys in SSL method entry",
     ):
         load_benchmark_config(config_path)
+    
+def test_loader_preserves_standalone_ssl_requirement(
+    tmp_path: Path,
+):
+    """The loader should preserve standalone SSL configuration."""
+    config_path = tmp_path / "benchmark.yaml"
+
+    config_path.write_text(
+        """
+models:
+  - logistic_regression
+  - random_forest
+
+ssl_methods:
+  - name: label_spreading
+    requires_base_model: false
+    params:
+      kernel: knn
+      n_neighbors: 7
+      alpha: 0.2
+      max_iterations: 30
+
+label_fractions:
+  - 0.1
+
+seeds:
+  - 42
+""".strip(),
+        encoding="utf-8",
+    )
+
+    config = load_benchmark_config(config_path)
+
+    assert config.ssl_methods == (
+        SSLMethodConfig(
+            name="label_spreading",
+            requires_base_model=False,
+            params={
+                "kernel": "knn",
+                "n_neighbors": 7,
+                "alpha": 0.2,
+                "max_iterations": 30,
+            },
+        ),
+    )

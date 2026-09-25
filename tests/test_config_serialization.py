@@ -66,10 +66,12 @@ def test_serialize_benchmark_config_preserves_effective_configuration():
             "ssl_methods":[
                 {
                     "name": "supervised",
+                    "requires_base_model": True,
                     "params": {}
                 },
                 {
                     "name": "self_training",
+                    "requires_base_model": True,
                     "params": {
                         "confidence_threshold": 0.95,
                         "max_iterations": 10,

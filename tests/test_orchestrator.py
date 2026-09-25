@@ -274,6 +274,7 @@ def test_run_and_save_benchmark_persists_complete_run(
     assert stored_config["benchmark"]["ssl_methods"] == [
         {
             "name": "supervised",
+            "requires_base_model": True,
             "params": {},
         }
     ]
