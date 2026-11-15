@@ -49,7 +49,7 @@ def run_benchmark(
     benchmark: BenchmarkConfig,
 ) -> tuple[ExperimentResult, ...]:
     """Execute a complete benchmark from validated configuration.
-    
+
     Args:
         datasets (tuple[DatasetConfig, ...]): Dataset configurations
             available to the benchmark.
@@ -66,7 +66,7 @@ def run_benchmark(
         datasets=datasets,
         benchmark=benchmark,
     )
-    
+
     loaded_datasets = _load_enabled_datasets(
         datasets,
     )
@@ -75,7 +75,7 @@ def run_benchmark(
         matrix=matrix,
         datasets=loaded_datasets,
     )
-    
+
 def run_and_save_benchmark(
     *,
     datasets: tuple[DatasetConfig, ...],

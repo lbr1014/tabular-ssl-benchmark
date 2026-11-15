@@ -1,5 +1,5 @@
 """Orchestration tests for benchmark execution.
-This module tests the orchestration of benchmark execution, 
+This module tests the orchestration of benchmark execution,
 including dataset loading, experiment generation, and result collection."""
 
 import json
@@ -46,7 +46,7 @@ def test_load_enabled_datasets_skips_disabled_datasets(
     assert set(loaded) == {
         mixed_dataset.name,
     }
-    
+
 def test_run_benchmark_executes_complete_matrix(
     monkeypatch,
     mixed_dataset,
@@ -95,7 +95,7 @@ def test_run_benchmark_executes_complete_matrix(
     )
 
     assert len(results) == expected_count
-    
+
     actual_combinations = {
         (
             result.config.model_name,
@@ -120,7 +120,7 @@ def test_run_benchmark_executes_complete_matrix(
     }
 
     assert actual_combinations == expected_combinations
-    
+
 def test_run_benchmark_loads_each_dataset_once(
     monkeypatch,
     mixed_dataset,
@@ -171,7 +171,7 @@ def test_run_benchmark_loads_each_dataset_once(
 
     assert len(results) == 18
     assert requested_ids == [61]
-    
+
 def test_run_benchmark_is_reproducible(
     monkeypatch,
     mixed_dataset,
@@ -216,7 +216,7 @@ def test_run_benchmark_is_reproducible(
     ):
         assert first_result.config == second_result.config
         assert first_result.metrics == second_result.metrics
-        
+
 def test_run_and_save_benchmark_persists_complete_run(
     monkeypatch,
     mixed_dataset,
@@ -254,7 +254,7 @@ def test_run_and_save_benchmark_persists_complete_run(
     assert artifacts.results_csv.exists()
     assert artifacts.metadata_json.exists()
     assert artifacts.config_json.exists()
-    
+
     with artifacts.metadata_json.open(
         "r",
         encoding="utf-8",
@@ -262,7 +262,7 @@ def test_run_and_save_benchmark_persists_complete_run(
         metadata = json.load(file)
 
     assert metadata["n_experiments"] == 1
-    
+
     with artifacts.config_json.open(
         "r",
         encoding="utf-8",
@@ -280,7 +280,7 @@ def test_run_and_save_benchmark_persists_complete_run(
             "params": {},
         }
     ]
-    
+
     with artifacts.results_jsonl.open(
         "r",
         encoding="utf-8",
@@ -296,7 +296,7 @@ def test_run_and_save_benchmark_persists_complete_run(
     assert records[0]["seed"] == 42
     assert records[0]["label_fraction"] == 0.5
     assert records[0]["test_size"] == 0.2
-    
+
 def make_benchmark(
     *,
     model_name="logistic_regression",

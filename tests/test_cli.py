@@ -32,14 +32,14 @@ def test_build_parser_parses_required_arguments():
     assert args.output_dir == Path(
         "results/test-run"
     )
-    
+
 def test_build_parser_requires_configuration_arguments():
     """CLI should require benchmark configuration paths."""
     parser = build_parser()
 
     with pytest.raises(SystemExit):
         parser.parse_args([])
-        
+
 def test_main_runs_and_persists_benchmark(
     monkeypatch,
     tmp_path,
