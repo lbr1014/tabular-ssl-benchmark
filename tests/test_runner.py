@@ -11,6 +11,37 @@ from models.sklearn_models import (
     create_random_forest,
 )
 from ssl_methods.supervised import SupervisedMethod
+from ssl_methods.base import SSLMethod
+from unittest.mock import Mock
+
+class StandaloneTestMethod(SSLMethod):
+    """Test-only strategy that creates its own classifier."""
+
+    @property
+    def name(self) -> str:
+        return "standalone_test"
+
+    @property
+    def params(self) -> dict[str, object]:
+        return {}
+
+    @property
+    def requires_base_model(self) -> bool:
+        return False
+
+    def fit(
+        self,
+        *,
+        model,
+        x_labeled,
+        y_labeled,
+        x_unlabeled,
+    ):
+        assert model is None
+        assert len(x_unlabeled) > 0
+
+        classifier = create_logistic_regression(seed=42)
+        return classifier.fit(x_labeled, y_labeled)
 
 def test_supervised_runner_returns_experiment_result(
     mixed_dataset,
@@ -36,7 +67,7 @@ def test_supervised_runner_returns_experiment_result(
     assert result.config.dataset_name == mixed_dataset.name
     assert result.config.model_name == model.name
     assert result.config.ssl_method == "supervised"
-    
+
 def test_supervised_runner_computes_all_metrics(
     mixed_dataset,
 ):
@@ -63,7 +94,7 @@ def test_supervised_runner_computes_all_metrics(
         "brier_score",
         "ece",
     }
-    
+
 def test_supervised_runner_records_partition_sizes(
     mixed_dataset,
 ):
@@ -96,7 +127,7 @@ def test_supervised_runner_records_partition_sizes(
         + result.n_test
         == mixed_dataset.n_samples
     )
-    
+
 def test_supervised_runner_records_execution_times(
     mixed_dataset,
 ):
@@ -115,7 +146,7 @@ def test_supervised_runner_records_execution_times(
 
     assert result.fit_time >= 0.0
     assert result.predict_time >= 0.0
-    
+
 def test_supervised_runner_is_reproducible(
     mixed_dataset,
 ):
@@ -145,7 +176,7 @@ def test_supervised_runner_is_reproducible(
     )
 
     assert first.metrics == second.metrics
-    
+
 def test_supervised_runner_supports_fully_labeled_training_data(
     mixed_dataset,
 ):
@@ -165,7 +196,7 @@ def test_supervised_runner_supports_fully_labeled_training_data(
     assert result.n_unlabeled == 0
     assert result.n_labeled == result.n_train
     assert result.n_train + result.n_test == mixed_dataset.n_samples
-    
+
 def test_run_experiment_spec_returns_result(
     mixed_dataset,
 ):
@@ -198,7 +229,7 @@ def test_run_experiment_spec_returns_result(
     assert result.config.label_fraction == 0.5
     assert result.config.seed == 42
     assert result.config.test_size == 0.2
-    
+
 @pytest.mark.parametrize(
     "model_name",
     [
@@ -229,7 +260,7 @@ def test_run_experiment_spec_supports_registered_models(
     )
 
     assert result.config.model_name == model_name
-    
+
 def test_run_experiment_spec_rejects_dataset_mismatch(
     mixed_dataset,
 ):
@@ -254,7 +285,7 @@ def test_run_experiment_spec_rejects_dataset_mismatch(
             spec=spec,
             dataset=mixed_dataset,
         )
-        
+
 def test_run_experiment_spec_is_reproducible(
     mixed_dataset,
 ):
@@ -282,7 +313,7 @@ def test_run_experiment_spec_is_reproducible(
     )
 
     assert first.metrics == second.metrics
-    
+
 def test_run_benchmark_matrix_executes_all_specs(
     mixed_dataset,
 ):
@@ -324,7 +355,7 @@ def test_run_benchmark_matrix_executes_all_specs(
         isinstance(result, ExperimentResult)
         for result in results
     )
-    
+
 def test_run_benchmark_matrix_preserves_order(
     mixed_dataset,
 ):
@@ -375,7 +406,7 @@ def test_run_benchmark_matrix_preserves_order(
         spec.seed
         for spec in matrix
     ]
-    
+
 def test_run_benchmark_matrix_rejects_missing_dataset(
     mixed_dataset,
 ):
@@ -402,7 +433,7 @@ def test_run_benchmark_matrix_rejects_missing_dataset(
                 mixed_dataset.name: mixed_dataset,
             },
         )
-        
+
 def test_run_benchmark_matrix_accepts_empty_matrix():
     """An empty experiment matrix should produce no results."""
     results = run_benchmark_matrix(
@@ -411,7 +442,7 @@ def test_run_benchmark_matrix_accepts_empty_matrix():
     )
 
     assert results == ()
-    
+
 def test_run_benchmark_matrix_rejects_non_tuple_matrix():
     """Matrix execution should require an immutable tuple."""
     with pytest.raises(
@@ -422,7 +453,7 @@ def test_run_benchmark_matrix_rejects_non_tuple_matrix():
             matrix=[],
             datasets={},
         )
-        
+
 def test_generic_runner_records_ssl_method(
     mixed_dataset,
 ):
@@ -441,7 +472,7 @@ def test_generic_runner_records_ssl_method(
 
     assert result.config.ssl_method == "supervised"
     assert result.config.ssl_params == {}
-    
+
 def test_generic_supervised_runner_matches_legacy_runner(
     mixed_dataset,
 ):
@@ -471,7 +502,7 @@ def test_generic_supervised_runner_matches_legacy_runner(
     assert generic_result.n_labeled == legacy_result.n_labeled
     assert generic_result.n_unlabeled == legacy_result.n_unlabeled
     assert generic_result.n_test == legacy_result.n_test
-    
+
 def test_generic_runner_supports_empty_unlabeled_partition(
     mixed_dataset,
 ):
@@ -491,7 +522,7 @@ def test_generic_runner_supports_empty_unlabeled_partition(
     assert result.n_unlabeled == 0
     assert result.n_labeled == result.n_train
     assert result.config.ssl_method == "supervised"
-    
+
 def test_run_experiment_spec_rejects_unknown_ssl_method(
     mixed_dataset,
 ):
@@ -516,7 +547,7 @@ def test_run_experiment_spec_rejects_unknown_ssl_method(
             spec=spec,
             dataset=mixed_dataset,
         )
-        
+
 def test_run_experiment_spec_supports_configured_self_training(
     mixed_dataset,
 ):
@@ -550,7 +581,7 @@ def test_run_experiment_spec_supports_configured_self_training(
         "confidence_threshold": 0.95,
         "max_iterations": 5,
     }
-    
+
 def test_run_experiment_spec_records_effective_ssl_defaults(
     mixed_dataset,
 ):
@@ -578,3 +609,143 @@ def test_run_experiment_spec_records_effective_ssl_defaults(
         "confidence_threshold": 0.95,
         "max_iterations": 10,
     }
+
+def test_standalone_spec_executes_without_creating_base_model(
+    monkeypatch,
+    mixed_dataset,
+):
+    """Standalone execution must not invoke the base-model factory."""
+    method = StandaloneTestMethod()
+    method_factory = Mock(return_value=method)
+    classifier_factory = Mock(
+        side_effect=AssertionError("Base-model factory must not be called")
+    )
+
+    monkeypatch.setattr(
+        "benchmark.runner.create_ssl_method",
+        method_factory,
+    )
+    monkeypatch.setattr(
+        "benchmark.runner.create_classifier",
+        classifier_factory,
+    )
+
+    spec = ExperimentSpec(
+        dataset=DatasetConfig(
+            name=mixed_dataset.name,
+            openml_id=1,
+        ),
+        model_name=None,
+        ssl_method=SSLMethodConfig(
+            name="standalone_test",
+            requires_base_model=False,
+        ),
+        label_fraction=0.5,
+        seed=42,
+        test_size=0.2,
+    )
+
+    result = run_experiment_spec(spec=spec, dataset=mixed_dataset)
+
+    method_factory.assert_called_once_with("standalone_test")
+    classifier_factory.assert_not_called()
+    assert isinstance(result, ExperimentResult)
+    assert result.config.model_name is None
+    assert result.config.ssl_method == "standalone_test"
+    assert "__model-standalone__" in result.config.experiment_id
+    assert "f1_macro" in result.metrics
+    assert result.n_labeled + result.n_unlabeled == result.n_train
+
+@pytest.mark.parametrize(
+    "requires_base_model",
+    [True, False],
+)
+def test_runner_rejects_incompatible_base_model_before_splitting(
+    monkeypatch,
+    mixed_dataset,
+    requires_base_model,
+):
+    """Invalid method/model combinations must fail before splitting."""
+    split_mock = Mock(
+        side_effect=AssertionError("Dataset splitting must not be called")
+    )
+    monkeypatch.setattr(
+        "benchmark.runner.create_ssl_split",
+        split_mock,
+    )
+
+    if requires_base_model:
+        method = SupervisedMethod()
+        model = None
+        message = "requires a base model"
+    else:
+        method = StandaloneTestMethod()
+        model = create_logistic_regression(seed=42)
+        message = "does not accept a base model"
+
+    with pytest.raises(ValueError, match=message):
+        run_experiment(
+            dataset=mixed_dataset,
+            model=model,
+            ssl_method=method,
+            label_fraction=0.5,
+            test_size=0.2,
+            seed=42,
+        )
+
+    split_mock.assert_not_called()
+
+@pytest.mark.parametrize(
+    "actual_requires_base_model",
+    [True, False],
+)
+def test_spec_rejects_inconsistent_model_requirement(
+    monkeypatch,
+    mixed_dataset,
+    actual_requires_base_model,
+):
+    """Configured and implemented model requirements must agree."""
+    method = (
+        SupervisedMethod()
+        if actual_requires_base_model
+        else StandaloneTestMethod()
+    )
+    monkeypatch.setattr(
+        "benchmark.runner.create_ssl_method",
+        Mock(return_value=method),
+    )
+
+    classifier_factory = Mock()
+    execution_mock = Mock()
+    monkeypatch.setattr(
+        "benchmark.runner.create_classifier",
+        classifier_factory,
+    )
+    monkeypatch.setattr(
+        "benchmark.runner.run_experiment",
+        execution_mock,
+    )
+
+    spec = ExperimentSpec(
+        dataset=DatasetConfig(
+            name=mixed_dataset.name,
+            openml_id=1,
+        ),
+        model_name=None if actual_requires_base_model else "logistic_regression",
+        ssl_method=SSLMethodConfig(
+            name=method.name,
+            requires_base_model=not actual_requires_base_model,
+        ),
+        label_fraction=0.5,
+        seed=42,
+        test_size=0.2,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Configured requires_base_model does not match",
+    ):
+        run_experiment_spec(spec=spec, dataset=mixed_dataset)
+
+    classifier_factory.assert_not_called()
+    execution_mock.assert_not_called()

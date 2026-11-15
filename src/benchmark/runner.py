@@ -33,7 +33,7 @@ from ssl_methods.factory import create_ssl_method
 def run_experiment(
     *,
     dataset: TabularDataset,
-    model: BenchmarkClassifier,
+    model: BenchmarkClassifier | None,
     ssl_method: SSLMethod,
     label_fraction: float,
     test_size: float,
@@ -44,10 +44,10 @@ def run_experiment(
     leakage-safe preprocessing, delegates model fitting to the selected learning
     strategy, and evaluates the fitted classifier exclusively on the held-out
     test partition.
-        
+
     Args:
         dataset (TabularDataset): Dataset used by the experiment.
-        model (BenchmarkClassifier): Classifier implementing the benchmark model interface.
+        model (BenchmarkClassifier | None): Classifier implementing the benchmark model interface or None for standalone methods.
         ssl_method (SSLMethod): Semi-supervised learning method to evaluate.
         label_fraction (float): Fraction of the training partition whose labels are available.
         test_size (float): Fraction of the complete dataset reserved for held-out testing.
@@ -57,18 +57,28 @@ def run_experiment(
         ExperimentResult: Metrics, timing information, sample counts, and experiment
         metadata produced by the run.
     """
-    
+
+    if ssl_method.requires_base_model and model is None:
+        raise ValueError(
+            f"SSL method {ssl_method.name!r} requires a base model."
+        )
+
+    if not ssl_method.requires_base_model and model is not None:
+        raise ValueError(
+            f"SSL method {ssl_method.name!r} does not accept a base model."
+        )
+
     split = create_ssl_split(
-        dataset.y,
-        label_fraction=label_fraction,
-        test_size=test_size,
-        seed=seed,
-    )
-    
+            dataset.y,
+            label_fraction=label_fraction,
+            test_size=test_size,
+            seed=seed,
+        )
+
     x_labeled = dataset.X.iloc[
         split.labeled_indices
     ]
-    
+
     x_unlabeled = dataset.X.iloc[
         split.unlabeled_indices
     ]
@@ -84,7 +94,7 @@ def run_experiment(
     y_test = dataset.y.iloc[
         split.test_indices
     ]
-    
+
     preprocessor = create_tabular_preprocessor(
         numerical_features=dataset.numerical_features,
         categorical_features=dataset.categorical_features,
@@ -94,7 +104,7 @@ def run_experiment(
         preprocessor,
         x_labeled,
     )
-    
+
     if len(x_unlabeled) > 0:
         x_unlabeled_transformed = transform_tabular(
             preprocessor,
@@ -107,7 +117,7 @@ def run_experiment(
         preprocessor,
         x_test,
     )
-    
+
     fit_start = perf_counter()
 
     fitted_model = ssl_method.fit(
@@ -118,7 +128,7 @@ def run_experiment(
     )
 
     fit_time = perf_counter() - fit_start
-    
+
     predict_start = perf_counter()
 
     predictions = fitted_model.predict(
@@ -132,7 +142,7 @@ def run_experiment(
     predict_time = (
         perf_counter() - predict_start
     )
-    
+
     y_test_array = y_test.to_numpy()
 
     metrics = {}
@@ -159,17 +169,17 @@ def run_experiment(
             fitted_model.classes_,
         )
     )
-    
+
     config = ExperimentConfig(
         dataset_name=dataset.name,
-        model_name=model.name,
+        model_name=model.name if model is not None else None,
         ssl_method=ssl_method.name,
         ssl_params=ssl_method.params,
         label_fraction=label_fraction,
         seed=seed,
         test_size=test_size,
     )
-    
+
     return ExperimentResult(
         config=config,
         metrics=metrics,
@@ -185,7 +195,7 @@ def run_experiment(
             "dataset_source_version": dataset.source_version,
         },
     )
-    
+
 def run_supervised_experiment(
     *,
     dataset: TabularDataset,
@@ -219,7 +229,7 @@ def run_supervised_experiment(
         test_size=test_size,
         seed=seed,
     )
-    
+
 def run_experiment_spec(
     spec: ExperimentSpec,
     dataset: TabularDataset,
@@ -236,7 +246,7 @@ def run_experiment_spec(
 
     Returns:
         ExperimentResult: Result produced by the configured experiment.
-        
+
     Raises:
         ValueError: If the loaded dataset does not match the dataset
             requested by the experiment specification.
@@ -248,15 +258,34 @@ def run_experiment_spec(
             f"received {dataset.name!r}."
         )
 
-    model = create_classifier(
-        spec.model_name,
-        seed=spec.seed,
-    )
-    
     ssl_method = create_ssl_method(
         spec.ssl_method.name,
         **spec.ssl_method.params,
     )
+
+    if spec.ssl_method.requires_base_model != ssl_method.requires_base_model:
+        raise ValueError(
+            f"Configured requires_base_model does not match "
+            f"SSL method {ssl_method.name!r}."
+        )
+
+    model: BenchmarkClassifier | None = None
+
+    if ssl_method.requires_base_model:
+        if spec.model_name is None:
+            raise ValueError(
+                f"SSL method {ssl_method.name!r} requires a model name."
+            )
+
+        model = create_classifier(
+            spec.model_name,
+            seed=spec.seed,
+        )
+    elif spec.model_name is not None:
+        raise ValueError(
+            f"Standalone SSL method {ssl_method.name!r} "
+            "must not specify a base model."
+        )
 
     return run_experiment(
         dataset=dataset,
@@ -266,7 +295,7 @@ def run_experiment_spec(
         seed=spec.seed,
         test_size=spec.test_size,
     )
-    
+
 def run_benchmark_matrix(
     matrix: tuple[ExperimentSpec, ...],
     datasets: Mapping[str, TabularDataset],
