@@ -25,7 +25,7 @@ class ExperimentConfig:
     """Configuration for a single benchmark experiment."""
 
     dataset_name: str
-    model_name: str
+    model_name: str | None
     ssl_method: str | None
 
     label_fraction: float
@@ -45,14 +45,18 @@ class ExperimentConfig:
             raise ValueError(
                 "test_size must be in the interval (0, 1)."
             )
-        
+
     @property
     def experiment_id(self) -> str:
         """Build a unique identifier for the experiment based on its configuration.
-        
+
         Returns:
             str: A unique identifier string for the experiment.
         """
+        model_identifier = (
+            "standalone" if self.model_name is None else self.model_name
+        )
+
         ssl_identifier = self.ssl_method or "supervised"
 
         if self.ssl_params:
@@ -63,13 +67,13 @@ class ExperimentConfig:
 
         return (
             f"{self.dataset_name}"
-            f"__model-{self.model_name}"
+            f"__model-{model_identifier}"
             f"__ssl-{ssl_identifier}"
             f"__lf-{self.label_fraction:g}"
             f"__test-{self.test_size:g}"
             f"__seed-{self.seed}"
         )
-            
+
 @dataclass
 class ExperimentResult:
     """Results produced by a single benchmark experiment."""
