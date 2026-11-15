@@ -47,7 +47,7 @@ def _create_result(
             "dataset_source_version": 1,
         },
     )
-    
+
 def _create_run_metadata(
     *,
     git_commit: str | None = "abc123",
@@ -60,7 +60,7 @@ def _create_run_metadata(
         git_commit=git_commit,
         n_experiments=2,
     )
-    
+
 def _create_datasets() -> tuple[DatasetConfig, ...]:
     """Create representative dataset configuration for persistence tests."""
     return (
@@ -69,7 +69,7 @@ def _create_datasets() -> tuple[DatasetConfig, ...]:
             openml_id=61,
         ),
     )
-    
+
 def _create_benchmark_config() -> BenchmarkConfig:
     """Create representative benchmark configuration for persistence tests."""
     return BenchmarkConfig(
@@ -79,7 +79,7 @@ def _create_benchmark_config() -> BenchmarkConfig:
         seeds=(1, 2),
         test_size=0.2,
     )
-    
+
 def test_save_benchmark_results_creates_output_files(
     tmp_path,
 ):
@@ -98,7 +98,7 @@ def test_save_benchmark_results_creates_output_files(
     assert csv_path.exists()
     assert jsonl_path.name == "results.jsonl"
     assert csv_path.name == "results.csv"
-    
+
 def test_save_benchmark_results_writes_jsonl_records(
     tmp_path,
 ):
@@ -125,7 +125,7 @@ def test_save_benchmark_results_writes_jsonl_records(
     assert len(records) == 2
     assert records[0]["seed"] == 1
     assert records[1]["seed"] == 2
-    
+
 def test_save_benchmark_results_writes_csv_records(
     tmp_path,
 ):
@@ -152,7 +152,7 @@ def test_save_benchmark_results_writes_csv_records(
     assert len(records) == 2
     assert records[0]["seed"] == "1"
     assert records[1]["seed"] == "2"
-    
+
 def test_save_benchmark_results_rejects_empty_results(
     tmp_path,
 ):
@@ -165,7 +165,7 @@ def test_save_benchmark_results_rejects_empty_results(
             (),
             tmp_path,
         )
-        
+
 def test_save_benchmark_results_rejects_inconsistent_schema(
     tmp_path,
 ):
@@ -190,10 +190,10 @@ def test_save_benchmark_results_rejects_inconsistent_schema(
             (first, second),
             tmp_path,
         )
-        
+
     assert not (tmp_path / "results.jsonl").exists()
     assert not (tmp_path / "results.csv").exists()
-        
+
 def test_save_run_metadata_creates_metadata_file(
     tmp_path,
 ):
@@ -207,8 +207,8 @@ def test_save_run_metadata_creates_metadata_file(
 
     assert metadata_path.exists()
     assert metadata_path.name == "metadata.json"
-    
-    
+
+
 def test_save_run_metadata_writes_metadata_content(
     tmp_path,
 ):
@@ -227,7 +227,7 @@ def test_save_run_metadata_writes_metadata_content(
         stored_metadata = json.load(file)
 
     assert stored_metadata == metadata.to_dict()
-    
+
 def test_save_run_metadata_creates_output_directory(
     tmp_path,
 ):
@@ -247,7 +247,7 @@ def test_save_run_metadata_creates_output_directory(
 
     assert output_dir.exists()
     assert metadata_path.exists()
-    
+
 def test_save_run_metadata_supports_missing_git_commit(
     tmp_path,
 ):
@@ -268,7 +268,7 @@ def test_save_run_metadata_supports_missing_git_commit(
         stored_metadata = json.load(file)
 
     assert stored_metadata["git_commit"] is None
-    
+
 def test_save_benchmark_config_creates_config_file(
     tmp_path,
 ):
@@ -285,7 +285,7 @@ def test_save_benchmark_config_creates_config_file(
 
     assert config_path.exists()
     assert config_path.name == "config.json"
-    
+
 def test_save_benchmark_config_preserves_effective_configuration(
     tmp_path,
 ):
@@ -310,7 +310,7 @@ def test_save_benchmark_config_preserves_effective_configuration(
         datasets=datasets,
         benchmark=benchmark,
     )
-    
+
 def test_save_benchmark_config_creates_output_directory(
     tmp_path,
 ):
@@ -324,7 +324,7 @@ def test_save_benchmark_config_creates_output_directory(
     datasets = _create_datasets()
 
     benchmark = _create_benchmark_config()
-    
+
     config_path = save_benchmark_config(
         datasets=datasets,
         benchmark=benchmark,
@@ -333,7 +333,7 @@ def test_save_benchmark_config_creates_output_directory(
 
     assert output_dir.exists()
     assert config_path.exists()
-    
+
 def test_save_benchmark_run_creates_all_artifacts(
     tmp_path,
 ):
@@ -348,7 +348,7 @@ def test_save_benchmark_run_creates_all_artifacts(
     benchmark = _create_benchmark_config()
 
     metadata = _create_run_metadata()
-    
+
     artifacts = save_benchmark_run(
         results=results,
         datasets=datasets,
@@ -361,12 +361,12 @@ def test_save_benchmark_run_creates_all_artifacts(
     assert artifacts.results_csv.exists()
     assert artifacts.metadata_json.exists()
     assert artifacts.config_json.exists()
-    
+
     assert artifacts.results_jsonl.name == "results.jsonl"
     assert artifacts.results_csv.name == "results.csv"
     assert artifacts.metadata_json.name == "metadata.json"
     assert artifacts.config_json.name == "config.json"
-    
+
 def test_save_benchmark_run_rejects_inconsistent_experiment_count(
     tmp_path,
 ):
@@ -392,12 +392,12 @@ def test_save_benchmark_run_rejects_inconsistent_experiment_count(
             metadata=metadata,
             output_dir=tmp_path,
         )
-    
+
     assert not (tmp_path / "results.jsonl").exists()
     assert not (tmp_path / "results.csv").exists()
     assert not (tmp_path / "metadata.json").exists()
     assert not (tmp_path / "config.json").exists()
-    
+
 def test_save_benchmark_results_preserves_ssl_params_in_jsonl(
     tmp_path,
 ):
@@ -425,7 +425,7 @@ def test_save_benchmark_results_preserves_ssl_params_in_jsonl(
         "confidence_threshold": 0.95,
         "max_iterations": 10,
     }
-    
+
 def test_save_benchmark_results_preserves_ssl_params_in_csv(
     tmp_path,
 ):
@@ -454,7 +454,7 @@ def test_save_benchmark_results_preserves_ssl_params_in_csv(
         "confidence_threshold": 0.95,
         "max_iterations": 10,
     }
-    
+
 def test_csv_ssl_params_are_serialized_deterministically(
     tmp_path,
 ):
@@ -494,3 +494,41 @@ def test_csv_ssl_params_are_serialized_deterministically(
         records = list(csv.DictReader(file))
 
     assert records[0]["ssl_params"] == records[1]["ssl_params"]
+
+def test_save_mixed_results_preserves_standalone_identity(tmp_path):
+    """Supervised and standalone results must share the output schema."""
+    supervised = _create_result(ssl_method="supervised")
+    standalone_config = replace(
+        supervised.config,
+        model_name=None,
+        ssl_method="standalone_test",
+    )
+    standalone = replace(supervised, config=standalone_config)
+
+    jsonl_path, csv_path = save_benchmark_results(
+        (supervised, standalone),
+        tmp_path,
+    )
+
+    with jsonl_path.open("r", encoding="utf-8") as file:
+        json_records = [json.loads(line) for line in file]
+
+    with csv_path.open("r", encoding="utf-8", newline="") as file:
+        csv_records = list(csv.DictReader(file))
+
+    assert len(json_records) == 2
+    assert len(csv_records) == 2
+
+    assert json_records[0]["model_name"] == "logistic_regression"
+    assert csv_records[0]["model_name"] == "logistic_regression"
+
+    assert json_records[1]["model_name"] is None
+    assert csv_records[1]["model_name"] == ""
+
+    for record in (json_records[1], csv_records[1]):
+        assert record["ssl_method"] == "standalone_test"
+        assert record["experiment_id"] == standalone_config.experiment_id
+        assert "__model-standalone__" in record["experiment_id"]
+
+    assert set(json_records[0]) == set(json_records[1])
+    assert set(csv_records[0]) == set(csv_records[1])

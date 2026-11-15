@@ -1,6 +1,6 @@
 """Serialization tests for experiment results.
 This module tests the serialization of experiment results into a flat dictionary format,
-ensuring that configuration, metrics, execution data, and metadata are correctly preserved 
+ensuring that configuration, metrics, execution data, and metadata are correctly preserved
 and that field collisions are properly handled."""
 
 from dataclasses import replace
@@ -69,7 +69,7 @@ def test_serialize_experiment_result_contains_configuration(
     assert record["test_size"] == (
         experiment_result.config.test_size
     )
-    
+
 def test_serialize_experiment_result_includes_metrics(
     experiment_result,
 ):
@@ -80,7 +80,7 @@ def test_serialize_experiment_result_includes_metrics(
 
     for metric_name, value in experiment_result.metrics.items():
         assert record[metric_name] == value
-        
+
 def test_serialize_experiment_result_includes_execution_data(
     experiment_result,
 ):
@@ -95,7 +95,7 @@ def test_serialize_experiment_result_includes_execution_data(
     assert record["n_labeled"] == experiment_result.n_labeled
     assert record["n_unlabeled"] == experiment_result.n_unlabeled
     assert record["n_test"] == experiment_result.n_test
-    
+
 def test_serialize_experiment_result_includes_metadata(
     experiment_result,
 ):
@@ -107,7 +107,7 @@ def test_serialize_experiment_result_includes_metadata(
     assert record["dataset_source"] == "openml"
     assert record["dataset_source_id"] == 61
     assert record["dataset_source_version"] == 1
-    
+
 def test_serialize_experiment_result_rejects_metadata_collisions(
     experiment_result,
 ):
@@ -126,7 +126,7 @@ def test_serialize_experiment_result_rejects_metadata_collisions(
         serialize_experiment_result(
             conflicting_result,
         )
-        
+
 def test_serialize_experiment_result_rejects_metrics_collisions(
     experiment_result,
 ):
@@ -145,7 +145,7 @@ def test_serialize_experiment_result_rejects_metrics_collisions(
         serialize_experiment_result(
             conflicting_result,
         )
-        
+
 def test_serialize_experiment_result_preserves_ssl_parameters(
     experiment_result,
 ):
@@ -171,3 +171,19 @@ def test_serialize_experiment_result_preserves_ssl_parameters(
         "confidence_threshold": 0.95,
         "max_iterations": 10,
     }
+
+def test_serialize_standalone_result_preserves_identity(experiment_result):
+    """Standalone results must preserve the absent base model."""
+    config = replace(
+        experiment_result.config,
+        model_name=None,
+        ssl_method="standalone_test",
+    )
+    result = replace(experiment_result, config=config)
+
+    record = serialize_experiment_result(result)
+
+    assert record["model_name"] is None
+    assert record["ssl_method"] == "standalone_test"
+    assert record["experiment_id"] == config.experiment_id
+    assert "__model-standalone__" in record["experiment_id"]
