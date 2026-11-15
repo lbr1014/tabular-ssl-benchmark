@@ -35,7 +35,7 @@ class DatasetConfig:
 
         if not isinstance(self.enabled, bool):
             raise TypeError("enabled must be a boolean.")
-        
+
 @dataclass(frozen=True)
 class SSLMethodConfig:
     """Configuration for a semi-supervised learning strategy.
@@ -61,10 +61,10 @@ class SSLMethodConfig:
 
         if not isinstance(self.requires_base_model, bool):
             raise TypeError("requires_base_model must be a boolean.")
-        
+
         if not isinstance(self.params, dict):
             raise TypeError("params must be a dictionary.")
-        
+
 @dataclass(frozen=True)
 class BenchmarkConfig:
     """Configuration describing the benchmark experiment grid."""
@@ -82,7 +82,7 @@ class BenchmarkConfig:
         self._validate_label_fractions()
         self._validate_seeds()
         self._validate_test_size()
-        
+
     def _validate_models(self) -> None:
         """Validate benchmark model identifiers."""
         if not isinstance(self.models, tuple):
@@ -108,7 +108,7 @@ class BenchmarkConfig:
             raise ValueError(
                 "models must not contain duplicate values."
             )
-            
+
     def _validate_ssl_methods(self) -> None:
         """Validate benchmark SSL method configurations."""
         if not isinstance(self.ssl_methods, tuple):
@@ -136,7 +136,7 @@ class BenchmarkConfig:
             raise ValueError(
                 "ssl_methods must contain unique method names."
             )
-    
+
     def _validate_label_fractions(self) -> None:
         """Validate labelled training fractions."""
         if not isinstance(self.label_fractions, tuple):
@@ -205,4 +205,4 @@ class BenchmarkConfig:
             raise ValueError(
                 "test_size must be in the interval (0, 1)."
             )
-            
+

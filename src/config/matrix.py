@@ -1,7 +1,7 @@
 """Experiment matrix generation utilities.
 
 This module expands benchmark-wide configuration values into concrete
-dataset-level experimental specifications. The generated specifications describe dataset, 
+dataset-level experimental specifications. The generated specifications describe dataset,
 model, SSL method, label fraction, random seed, and test split combinations.
 """
 
@@ -25,12 +25,12 @@ class ExperimentSpec:
     @property
     def spec_id(self) -> str:
         """Return a deterministic human-readable specification ID.
-        
+
         Returns:
             str: Deterministic human-readable specification ID.
         """
         model_id = self.model_name or "standalone"
-        
+
         return (
             f"{self.dataset.name}"
             f"__model-{model_id}"
@@ -50,11 +50,11 @@ def generate_experiment_matrix(
     Args:
         datasets (tuple[DatasetConfig, ...]): Dataset configurations.
         benchmark (BenchmarkConfig): Benchmark configuration.
-        
+
     Returns:
         tuple[ExperimentSpec, ...]: All enabled dataset-level experiment combinations.
     """
-    
+
     _validate_matrix_inputs(
         datasets=datasets,
         benchmark=benchmark,
@@ -111,7 +111,7 @@ def _validate_matrix_inputs(
         datasets (tuple[DatasetConfig, ...]): Dataset configurations to validate.
         benchmark (BenchmarkConfig): Benchmark configuration to validate.
     """
-    
+
     if not isinstance(datasets, tuple):
         raise TypeError("datasets must be a tuple.")
 

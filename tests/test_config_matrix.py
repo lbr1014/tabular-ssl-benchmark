@@ -39,7 +39,7 @@ def benchmark_config() -> BenchmarkConfig:
         seeds=(1, 2, 3),
         test_size=0.2,
     )
-    
+
 @pytest.fixture
 def dataset_config() -> DatasetConfig:
     """Return a small benchmark configuration used by matrix tests."""
@@ -189,7 +189,7 @@ def test_matrix_rejects_no_enabled_datasets(
             datasets=datasets,
             benchmark=benchmark_config,
         )
-        
+
 def test_matrix_spec_ids_are_unique(
     datasets,
     benchmark_config,
@@ -206,7 +206,7 @@ def test_matrix_spec_ids_are_unique(
     ]
 
     assert len(spec_ids) == len(set(spec_ids))
-    
+
 def test_matrix_contains_all_combinations(
     datasets,
     benchmark_config,
@@ -241,7 +241,7 @@ def test_matrix_contains_all_combinations(
     )
 
     assert combinations == expected
-    
+
 def test_experiment_spec_id_changes_with_test_size(
     dataset_config,
 ):
@@ -265,7 +265,7 @@ def test_experiment_spec_id_changes_with_test_size(
     )
 
     assert first.spec_id != second.spec_id
-    
+
 def test_experiment_spec_id_changes_with_ssl_method(
     dataset_config,
 ):
@@ -289,7 +289,7 @@ def test_experiment_spec_id_changes_with_ssl_method(
     )
 
     assert first.spec_id != second.spec_id
-    
+
 def test_matrix_preserves_ssl_method_parameters(
     datasets,
 ) -> None:
@@ -319,7 +319,7 @@ def test_matrix_preserves_ssl_method_parameters(
         spec.ssl_method == self_training
         for spec in matrix
     )
-    
+
 def test_standalone_ssl_method_is_not_repeated_per_base_model():
     """Standalone SSL methods should generate one experiment per split."""
     datasets = (
@@ -359,7 +359,7 @@ def test_standalone_ssl_method_is_not_repeated_per_base_model():
         "__test-0.2"
         "__seed-42"
     )
-    
+
 def test_model_dependent_ssl_method_is_combined_with_all_models():
     """Model-dependent SSL methods should use every configured model."""
     datasets = (
@@ -393,7 +393,7 @@ def test_model_dependent_ssl_method_is_combined_with_all_models():
         "logistic_regression",
         "random_forest",
     ]
-    
+
 def test_standalone_ssl_method_is_not_repeated_per_model(
     dataset_config,
 ):
@@ -429,7 +429,7 @@ def test_standalone_ssl_method_is_not_repeated_per_model(
         "__test-0.2"
         "__seed-42"
     )
-    
+
 def test_model_dependent_ssl_method_uses_every_model(
     dataset_config,
 ):

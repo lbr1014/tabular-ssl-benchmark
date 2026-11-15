@@ -18,7 +18,7 @@ ssl_methods:
 
   - name: self_training
     requires_base_model: true
-    params: 
+    params:
       confidence_threshold: 0.95
       max_iterations: 10
 

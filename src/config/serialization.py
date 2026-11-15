@@ -47,4 +47,4 @@ def serialize_benchmark_config(
             "test_size": benchmark.test_size,
         },
     }
-    
+
