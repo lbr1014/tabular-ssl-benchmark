@@ -5,7 +5,7 @@ import pytest
 
 from config.models import BenchmarkConfig, SSLMethodConfig
 from config.validation import validate_benchmark_compatibility
-
+from unittest.mock import Mock
 
 def make_benchmark(
     *,
@@ -117,3 +117,74 @@ def test_invalid_benchmark_type_is_rejected():
     """Validation should require a BenchmarkConfig instance."""
     with pytest.raises(TypeError):
         validate_benchmark_compatibility(None)
+
+def test_valid_standalone_configuration(monkeypatch):
+    """Standalone methods with matching configuration should be accepted."""
+    method = Mock()
+    method.name = "standalone_test"
+    method.requires_base_model = False
+    factory = Mock(return_value=method)
+
+    monkeypatch.setattr(
+        "config.validation.create_ssl_method",
+        factory,
+    )
+
+    benchmark = make_benchmark(
+        ssl_methods=(
+            SSLMethodConfig(
+                name="standalone_test",
+                requires_base_model=False,
+            ),
+        ),
+    )
+
+    validate_benchmark_compatibility(benchmark)
+
+    factory.assert_called_once_with("standalone_test")
+    method.fit.assert_not_called()
+
+def test_model_dependent_method_rejects_standalone_configuration():
+    """Model-dependent methods must not be declared standalone."""
+    benchmark = make_benchmark(
+        ssl_methods=(
+            SSLMethodConfig(
+                name="self_training",
+                requires_base_model=False,
+            ),
+        ),
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Configured requires_base_model does not match",
+    ):
+        validate_benchmark_compatibility(benchmark)
+
+def test_standalone_method_rejects_base_model_configuration(monkeypatch):
+    """Standalone methods must not be declared model-dependent."""
+    method = Mock()
+    method.name = "standalone_test"
+    method.requires_base_model = False
+
+    monkeypatch.setattr(
+        "config.validation.create_ssl_method",
+        Mock(return_value=method),
+    )
+
+    benchmark = make_benchmark(
+        ssl_methods=(
+            SSLMethodConfig(
+                name="standalone_test",
+                requires_base_model=True,
+            ),
+        ),
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Configured requires_base_model does not match",
+    ):
+        validate_benchmark_compatibility(benchmark)
+
+    method.fit.assert_not_called()

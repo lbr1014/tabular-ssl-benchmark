@@ -52,10 +52,8 @@ def validate_benchmark_compatibility(
             ) from exc
 
         # The current experiment runner always supplies a base model.
-        # Standalone SSL methods are not supported in this branch.
-        if not method.requires_base_model:
+        if method_config.requires_base_model != method.requires_base_model:
             raise ValueError(
-                f"SSL method {method_config.name!r} does not require "
-                "a base model, but standalone SSL execution is not "
-                "supported by the current benchmark runner."
+                "Configured requires_base_model does not match "
+                f"SSL method {method_config.name!r}."
             )
