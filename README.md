@@ -129,6 +129,54 @@ The benchmark is designed around deterministic and traceable experiment executio
 
 - Execution timestamps are stored in UTC using timezone-aware ISO 8601 representations.
 
+## Development setup
+
+The project requires Python 3.10 or newer. Continuous integration currently checks Python 3.10 and 3.12.
+
+Create a virtual environment if you have not already created one:
+
+```bash
+python -m venv .venv
+```
+
+Activate it on Linux:
+
+```bash
+source .venv/bin/activate
+```
+
+Or on Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+Install the project and its development tools:
+
+```bash
+python -m pip install -e ".[dev]"
+```
+
+The development dependencies include pytest for automated tests, Ruff for static analysis, and build for package distribution checks.
+
+## Continuous integration
+
+The workflow in `.github/workflows/ci.yml` runs on pushes and pull requests.
+
+Each run checks Python 3.10 and 3.12 independently. For each version, the workflow:
+
+1. Installs the project and development dependencies.
+2. Checks installed dependency consistency.
+3. Runs Ruff and the unit and integration tests.
+4. Checks the development CLI.
+5. Builds the wheel and source distribution.
+6. Installs the wheel in a separate clean virtual environment.
+7. Checks dependency consistency in that environment.
+8. Runs the installed CLI from outside the repository.
+
+The separate wheel installation checks that CLI startup works with
+the distributed package, without relying on the editable installation or the repository's working directory.
+
 ## Testing
 
 Run test suite with:
@@ -137,7 +185,13 @@ Run test suite with:
 python -m pytest -v
 ```
 
-This test suite avoids depending on external network availability where possible. Real OpenML execution is validated separately through the provided smoke-test configuration, which executes a single Logistic Regression experiment on the Iris dataset to verify that the complete benchmark pipeline works correctly.
+The automated suite uses synthetic data and mocked OpenML responses.
+Real OpenML execution is checked separately using the smoke-test
+configuration below.
+
+### Real OpenML smoke test
+
+Run a small end-to-end benchmark using Logistic Regression on Iris:
 
 ```bash
 tabular-ssl-benchmark \
@@ -145,3 +199,13 @@ tabular-ssl-benchmark \
     --benchmark-config tests/config/smoke/test_benchmark.yaml \
     --output-dir results/smoke-test
 ```
+
+This command requires network access when the dataset is not already
+cached. It is not executed by the CI workflow.
+
+Check that the output directory contains:
+
+- `config.json`
+- `metadata.json`
+- `results.jsonl`
+- `results.csv`

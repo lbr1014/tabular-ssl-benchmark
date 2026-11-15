@@ -27,7 +27,7 @@ def test_perfect_binary_probabilities_produce_perfect_auc():
 
     assert metrics["roc_auc"] == pytest.approx(1.0)
     assert metrics["log_loss"] >= 0.0
-    
+
 def test_probabilistic_metrics_return_expected_keys():
     """Probability evaluation should expose stable metric names."""
     metrics = compute_probabilistic_metrics(
@@ -64,7 +64,7 @@ def test_probabilistic_metrics_are_python_floats():
         isinstance(value, float)
         for value in metrics.values()
     )
-    
+
 def test_probabilistic_metrics_support_multiclass():
     """Probability metrics should support multiclass classification."""
     y_true = np.array([0, 1, 2, 0, 1, 2])
@@ -88,31 +88,8 @@ def test_probabilistic_metrics_support_multiclass():
 
     assert 0.0 <= metrics["roc_auc"] <= 1.0
     assert metrics["log_loss"] >= 0.0
-    
-def test_probabilistic_metrics_support_multiclass():
-    """Probability metrics should support multiclass classification."""
-    y_true = np.array([0, 1, 2, 0, 1, 2])
 
-    y_proba = np.array(
-        [
-            [0.8, 0.1, 0.1],
-            [0.1, 0.8, 0.1],
-            [0.1, 0.1, 0.8],
-            [0.7, 0.2, 0.1],
-            [0.2, 0.7, 0.1],
-            [0.1, 0.2, 0.7],
-        ]
-    )
 
-    metrics = compute_probabilistic_metrics(
-        y_true,
-        y_proba,
-        classes=np.array([0, 1, 2]),
-    )
-
-    assert 0.0 <= metrics["roc_auc"] <= 1.0
-    assert metrics["log_loss"] >= 0.0
-    
 def test_probabilistic_metrics_reject_wrong_probability_columns():
     """Probability matrices must contain one column per class."""
     with pytest.raises(
@@ -183,7 +160,7 @@ def test_probabilistic_metrics_reject_unknown_true_labels():
             ),
             classes=np.array([0, 1]),
         )
-        
+
 def test_log_loss_penalizes_overconfident_wrong_predictions():
     """Log loss should penalize confident incorrect probabilities."""
     y_true = np.array([0, 1])
