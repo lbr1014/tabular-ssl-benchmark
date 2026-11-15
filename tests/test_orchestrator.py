@@ -1,8 +1,11 @@
 """Orchestration tests for benchmark execution.
-This module tests the orchestration of benchmark execution, 
+This module tests the orchestration of benchmark execution,
 including dataset loading, experiment generation, and result collection."""
 
 import json
+
+from unittest.mock import patch
+import pytest
 
 from benchmark.orchestrator import _load_enabled_datasets, run_and_save_benchmark, run_benchmark
 from config.models import BenchmarkConfig, DatasetConfig, SSLMethodConfig
@@ -43,7 +46,7 @@ def test_load_enabled_datasets_skips_disabled_datasets(
     assert set(loaded) == {
         mixed_dataset.name,
     }
-    
+
 def test_run_benchmark_executes_complete_matrix(
     monkeypatch,
     mixed_dataset,
@@ -92,7 +95,7 @@ def test_run_benchmark_executes_complete_matrix(
     )
 
     assert len(results) == expected_count
-    
+
     actual_combinations = {
         (
             result.config.model_name,
@@ -117,7 +120,7 @@ def test_run_benchmark_executes_complete_matrix(
     }
 
     assert actual_combinations == expected_combinations
-    
+
 def test_run_benchmark_loads_each_dataset_once(
     monkeypatch,
     mixed_dataset,
@@ -168,7 +171,7 @@ def test_run_benchmark_loads_each_dataset_once(
 
     assert len(results) == 18
     assert requested_ids == [61]
-    
+
 def test_run_benchmark_is_reproducible(
     monkeypatch,
     mixed_dataset,
@@ -213,7 +216,7 @@ def test_run_benchmark_is_reproducible(
     ):
         assert first_result.config == second_result.config
         assert first_result.metrics == second_result.metrics
-        
+
 def test_run_and_save_benchmark_persists_complete_run(
     monkeypatch,
     mixed_dataset,
@@ -251,7 +254,7 @@ def test_run_and_save_benchmark_persists_complete_run(
     assert artifacts.results_csv.exists()
     assert artifacts.metadata_json.exists()
     assert artifacts.config_json.exists()
-    
+
     with artifacts.metadata_json.open(
         "r",
         encoding="utf-8",
@@ -259,7 +262,7 @@ def test_run_and_save_benchmark_persists_complete_run(
         metadata = json.load(file)
 
     assert metadata["n_experiments"] == 1
-    
+
     with artifacts.config_json.open(
         "r",
         encoding="utf-8",
@@ -277,7 +280,7 @@ def test_run_and_save_benchmark_persists_complete_run(
             "params": {},
         }
     ]
-    
+
     with artifacts.results_jsonl.open(
         "r",
         encoding="utf-8",
@@ -293,3 +296,89 @@ def test_run_and_save_benchmark_persists_complete_run(
     assert records[0]["seed"] == 42
     assert records[0]["label_fraction"] == 0.5
     assert records[0]["test_size"] == 0.2
+
+def make_benchmark(
+    *,
+    model_name="logistic_regression",
+    method_name="supervised",
+):
+    """Create a minimal benchmark configuration."""
+    return BenchmarkConfig(
+        models=(model_name,),
+        ssl_methods=(
+            SSLMethodConfig(name=method_name),
+        ),
+        label_fractions=(0.1,),
+        seeds=(42,),
+        test_size=0.2,
+    )
+
+
+def make_datasets():
+    """Create a dataset configuration without downloading it."""
+    return (
+        DatasetConfig(
+            name="iris",
+            openml_id=61,
+            enabled=True,
+        ),
+    )
+
+
+def test_unknown_model_fails_before_dataset_loading():
+    """Invalid models must not trigger OpenML downloads."""
+    benchmark = make_benchmark(model_name="unknown_model")
+
+    with patch(
+        "benchmark.orchestrator._load_enabled_datasets"
+    ) as mock_load:
+        with pytest.raises(ValueError, match="Invalid benchmark model"):
+            run_benchmark(
+                datasets=make_datasets(),
+                benchmark=benchmark,
+            )
+
+    mock_load.assert_not_called()
+
+
+def test_unknown_ssl_method_fails_before_dataset_loading():
+    """Invalid SSL methods must not trigger OpenML downloads."""
+    benchmark = make_benchmark(method_name="unknown_method")
+
+    with patch(
+        "benchmark.orchestrator._load_enabled_datasets"
+    ) as mock_load:
+        with pytest.raises(ValueError, match="Invalid SSL method"):
+            run_benchmark(
+                datasets=make_datasets(),
+                benchmark=benchmark,
+            )
+
+    mock_load.assert_not_called()
+
+
+def test_disabled_datasets_fail_before_dataset_loading():
+    """A benchmark with no enabled datasets must fail early."""
+    benchmark = make_benchmark()
+
+    datasets = (
+        DatasetConfig(
+            name="iris",
+            openml_id=61,
+            enabled=False,
+        ),
+    )
+
+    with patch(
+        "benchmark.orchestrator._load_enabled_datasets"
+    ) as mock_load:
+        with pytest.raises(
+            ValueError,
+            match="At least one dataset must be enabled",
+        ):
+            run_benchmark(
+                datasets=datasets,
+                benchmark=benchmark,
+            )
+
+    mock_load.assert_not_called()

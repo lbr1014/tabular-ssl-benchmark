@@ -6,7 +6,8 @@ from collections.abc import Sequence
 
 from benchmark.orchestrator import run_and_save_benchmark
 from config.loader import load_benchmark_config, load_dataset_configs
-
+from config.matrix import generate_experiment_matrix
+from config.validation import validate_benchmark_compatibility
 
 def build_parser() -> argparse.ArgumentParser:
     """Build the command-line argument parser.
@@ -47,7 +48,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main(
     argv: Sequence[str] | None = None,
 ) -> int:
-    """Run the benchmark command-line interface.
+    """Run the benchmark command-line interface with early configuration validation.
 
     Args:
         argv (Sequence[str] | None): Optional command-line arguments.
@@ -59,13 +60,24 @@ def main(
     parser = build_parser()
     args = parser.parse_args(argv)
 
-    datasets = load_dataset_configs(
-        args.datasets_config,
-    )
+    try:
+        datasets = load_dataset_configs(
+            args.datasets_config,
+        )
+        benchmark = load_benchmark_config(
+            args.benchmark_config,
+        )
 
-    benchmark = load_benchmark_config(
-        args.benchmark_config,
-    )
+        validate_benchmark_compatibility(benchmark)
+
+        # Validate the experiment matrix before loading OpenML data.
+        generate_experiment_matrix(
+            datasets=datasets,
+            benchmark=benchmark,
+        )
+
+    except (TypeError, ValueError) as exc:
+        parser.error(str(exc))
 
     artifacts = run_and_save_benchmark(
         datasets=datasets,
@@ -74,7 +86,7 @@ def main(
     )
 
     print(
-        f"Benchmark completed successfully: "
+        "Benchmark completed successfully: "
         f"{artifacts.results_csv.parent}"
     )
 
