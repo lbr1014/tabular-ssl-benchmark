@@ -1,7 +1,7 @@
 """Experiment matrix generation utilities.
 
 This module expands benchmark-wide configuration values into concrete
-dataset-level experimental specifications. The generated specifications describe dataset, 
+dataset-level experimental specifications. The generated specifications describe dataset,
 model, SSL method, label fraction, random seed, and test split combinations.
 """
 
@@ -16,7 +16,7 @@ class ExperimentSpec:
     """Describe one dataset-level experimental specification."""
 
     dataset: DatasetConfig
-    model_name: str
+    model_name: str | None
     ssl_method: SSLMethodConfig
     label_fraction: float
     seed: int
@@ -25,13 +25,15 @@ class ExperimentSpec:
     @property
     def spec_id(self) -> str:
         """Return a deterministic human-readable specification ID.
-        
+
         Returns:
             str: Deterministic human-readable specification ID.
         """
+        model_id = self.model_name or "standalone"
+
         return (
             f"{self.dataset.name}"
-            f"__model-{self.model_name}"
+            f"__model-{model_id}"
             f"__ssl-{self.ssl_method.name}"
             f"__lf-{self.label_fraction:g}"
             f"__test-{self.test_size:g}"
@@ -48,11 +50,11 @@ def generate_experiment_matrix(
     Args:
         datasets (tuple[DatasetConfig, ...]): Dataset configurations.
         benchmark (BenchmarkConfig): Benchmark configuration.
-        
+
     Returns:
         tuple[ExperimentSpec, ...]: All enabled dataset-level experiment combinations.
     """
-    
+
     _validate_matrix_inputs(
         datasets=datasets,
         benchmark=benchmark,
@@ -69,26 +71,34 @@ def generate_experiment_matrix(
             "At least one dataset must be enabled."
         )
 
-    combinations = product(
-        enabled_datasets,
-        benchmark.models,
-        benchmark.ssl_methods,
-        benchmark.label_fractions,
-        benchmark.seeds,
-    )
+    specs: list[ExperimentSpec] = []
 
-    return tuple(
-        ExperimentSpec(
-            dataset=dataset,
-            model_name=model_name,
-            ssl_method=ssl_method,
-            label_fraction=label_fraction,
-            seed=seed,
-            test_size=benchmark.test_size,
-        )
-        for dataset, model_name, ssl_method, label_fraction, seed in combinations
-    )
+    for dataset in enabled_datasets:
+        for ssl_method in benchmark.ssl_methods:
+            model_names: tuple[str | None, ...]
 
+            if ssl_method.requires_base_model:
+                model_names = benchmark.models
+            else:
+                model_names = (None,)
+
+            for model_name, label_fraction, seed in product(
+                model_names,
+                benchmark.label_fractions,
+                benchmark.seeds,
+            ):
+                specs.append(
+                    ExperimentSpec(
+                        dataset=dataset,
+                        model_name=model_name,
+                        ssl_method=ssl_method,
+                        label_fraction=label_fraction,
+                        seed=seed,
+                        test_size=benchmark.test_size,
+                    )
+                )
+
+    return tuple(specs)
 
 def _validate_matrix_inputs(
     *,
@@ -101,7 +111,7 @@ def _validate_matrix_inputs(
         datasets (tuple[DatasetConfig, ...]): Dataset configurations to validate.
         benchmark (BenchmarkConfig): Benchmark configuration to validate.
     """
-    
+
     if not isinstance(datasets, tuple):
         raise TypeError("datasets must be a tuple.")
 

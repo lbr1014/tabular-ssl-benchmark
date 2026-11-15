@@ -35,6 +35,7 @@ def serialize_benchmark_config(
             "ssl_methods": [
                 {
                     "name": method.name,
+                    "requires_base_model": method.requires_base_model,
                     "params": dict(method.params),
                 }
                 for method in benchmark.ssl_methods
@@ -46,4 +47,4 @@ def serialize_benchmark_config(
             "test_size": benchmark.test_size,
         },
     }
-    
+

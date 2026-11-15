@@ -19,7 +19,7 @@ def load_dataset_configs(
 
     Args:
         path (str | Path): Path to the dataset YAML configuration file.
-        
+
     Returns:
         tuple[DatasetConfig, ...]: Validated dataset configurations.
     """
@@ -90,12 +90,12 @@ def load_benchmark_config(
     ssl_methods = _parse_ssl_methods(raw_config["ssl_methods"])
     label_fractions = raw_config["label_fractions"]
     seeds = raw_config["seeds"]
-    
+
     if not isinstance(models, list):
         raise ValueError(
             "'models' must be a list."
         )
-        
+
     if not isinstance(label_fractions, list):
         raise ValueError(
             "'label_fractions' must be a list."
@@ -122,7 +122,7 @@ def _load_yaml_mapping(
 
     Args:
         path (str | Path): Path to the YAML configuration file.
-        
+
     Returns:
         dict[str, Any]: Parsed YAML mapping.
     """
@@ -186,7 +186,7 @@ def _parse_ssl_methods(
         _validate_keys(
             raw_method,
             required={"name"},
-            allowed={"name", "params"},
+            allowed={"name", "requires_base_model", "params"},
             context=f"SSL method entry at index {index}",
         )
 
@@ -195,6 +195,10 @@ def _parse_ssl_methods(
         methods.append(
             SSLMethodConfig(
                 name=raw_method["name"],
+                requires_base_model=raw_method.get(
+                    "requires_base_model",
+                    True,
+                ),
                 params=params,
             )
         )
@@ -215,7 +219,7 @@ def _parse_dataset_config(
     Returns:
         DatasetConfig: Validated dataset configuration.
     """
-    
+
     if not isinstance(raw_dataset, dict):
         raise ValueError(
             f"Dataset entry at index {index} must be a mapping."

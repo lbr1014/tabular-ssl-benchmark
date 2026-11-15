@@ -66,22 +66,24 @@ def test_serialize_benchmark_config_preserves_effective_configuration():
             "ssl_methods":[
                 {
                     "name": "supervised",
+                    "requires_base_model": True,
                     "params": {}
                 },
                 {
                     "name": "self_training",
+                    "requires_base_model": True,
                     "params": {
                         "confidence_threshold": 0.95,
                         "max_iterations": 10,
                     },
-                },    
+                },
             ],
             "label_fractions": [0.1, 0.5],
             "seeds": [1, 2],
             "test_size": 0.25,
         },
     }
-    
+
 def test_serialized_benchmark_config_is_json_serializable():
     """Serialized benchmark configuration should be JSON compatible."""
     datasets = (

@@ -60,7 +60,7 @@ def test_invalid_test_size():
             seed=42,
             test_size=1.0,
         )
-        
+
 def test_experiment_id_changes_with_test_size():
     """Different test sizes should produce different experiment identifiers."""
     first = ExperimentConfig(
@@ -142,7 +142,7 @@ def test_experiment_id_is_independent_of_ssl_parameter_order():
     )
 
     assert first.experiment_id == second.experiment_id
-    
+
 def test_experiment_id_with_ssl_parameters_is_deterministic():
     """Equal SSL configurations should produce identical experiment IDs."""
     params = {
@@ -171,3 +171,24 @@ def test_experiment_id_with_ssl_parameters_is_deterministic():
     )
 
     assert first.experiment_id == second.experiment_id
+
+def test_standalone_experiment_id_uses_standalone_model_identifier():
+    """Standalone experiments must have an explicit model identifier."""
+    config = ExperimentConfig(
+        dataset_name="iris",
+        model_name=None,
+        ssl_method="label_spreading",
+        label_fraction=0.1,
+        seed=42,
+        test_size=0.2,
+    )
+
+    assert config.model_name is None
+    assert config.experiment_id == (
+        "iris"
+        "__model-standalone"
+        "__ssl-label_spreading"
+        "__lf-0.1"
+        "__test-0.2"
+        "__seed-42"
+    )

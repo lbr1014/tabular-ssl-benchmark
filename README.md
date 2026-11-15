@@ -18,12 +18,12 @@ The benchmark emphasizes:
 
 ## Current status
 
-The benchmark infrastructure currently supports reproducible supervised baseline experiments, including:
+The benchmark supports supervised reference experiments and confidence-based Self-Training with Logistic Regression and Random Forest. This infrastructure includes:
 
 - YAML-based experiment configuration.
 - OpenML dataset loading.
 - Deterministic train/test and labeled/unlabeled splits.
-- Supervised and semi-supervised baseline model execution.
+- Experiment specifications and execution with optional base classifiers.
 - Classification, probabilistic, and calibration metrics.
 - Experiment result serialization.
 - Benchmark-level metadata and configuration persistence.
@@ -33,11 +33,36 @@ The benchmark infrastructure currently supports reproducible supervised baseline
 
 ## Benchmark design
 
-Each benchmark experiment is defined by a combination of dataset, model, semi-supervised learning method, labeled-data fraction, random seed, test-set fraction.
+Each benchmark experiment is defined by a combination of dataset, learning strategy, optional base classifier, labeled-data fraction, random seed, test-set fraction.
 
 For every experiment, the dataset is first divided into training and held-out test partitions. The training partition is subsequently divided into labeled and unlabeled subsets according to the requested label fraction.
 
 The test set remains isolated from model training and is used exclusively for final evaluation.
+
+### Model-dependent and standalone strategies
+
+Model-dependent strategies receive a base classifier:
+
+- `supervised` trains it exclusively on labeled samples.
+- `self_training` iteratively adds confident pseudo-labeled samples.
+
+Standalone strategies create their own classifier and do not receive a
+base model. The framework represents this distinction through
+`requires_base_model`:
+
+- `true`: generate experiments for each configured base classifier.
+- `false`: generate one experiment per dataset, label fraction, and seed,
+  without multiplying it by the configured base classifiers.
+
+The configured requirement must match the strategy implementation.
+Incompatible configurations are rejected before dataset loading.
+
+For standalone experiments, `model_name` is `None` internally and the
+experiment identifier contains `__model-standalone__`. The strategy name
+identifies the algorithm.
+
+Standalone execution is currently covered using a test-only strategy.
+No standalone algorithm is available through the CLI yet.
 
 ## Repository structure
 
@@ -93,7 +118,7 @@ selection and experiment configuration.
 1) **Dataset configuration**: each enabled dataset is loaded from OpenML using its numeric dataset
 identifier.
 
-2) **Benchmark configuration**: the benchmark matrix is generated from the configured datasets, models, label fractions and random seeds. The variable ```test_size``` controls the fraction of the dataset reserved exclusively for final evaluation.
+2) **Benchmark configuration**: the benchmark matrix is generated from the configured datasets, learning strategies, applicable base classifiers, label fractions, and random seeds. Each strategy declares `requires_base_model`, which must match its implementation. The variable ```test_size``` controls the fraction of the dataset reserved exclusively for final evaluation.
 
 ## Running the benchmark
 
@@ -116,6 +141,8 @@ Each persisted benchmark run generates the following artifacts in ```results/my-
 - ```metadata.json```: records run-level provenance information such as creation time (UTC), Python version, execution platform, Git commit and number of experiments.
 - ```results.jsonl```: stores one serialized record per experiment.
 - ```results.csv```: provides the same experiment results in tabular form for subsequent statistical analysis.
+
+Results preserve the learning strategy name and its effective parameters. For standalone experiments, `model_name` is stored as `null` in JSONL and as an empty cell in CSV. Their identifiers contain `__model-standalone__`. Supervised and standalone results share the same output columns.
 
 ## Reproducibility
 

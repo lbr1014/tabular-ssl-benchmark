@@ -63,7 +63,7 @@ ssl_methods:
     params:
       confidence_threshold: 0.95
       max_iterations: 10
-  
+
 label_fractions:
   - 0.05
   - 0.10
@@ -100,7 +100,7 @@ test_size: 0.25
             },
         ),
     )
-    
+
     assert config.seeds == (1, 2, 3)
     assert config.test_size == 0.25
 
@@ -115,10 +115,10 @@ def test_benchmark_config_uses_default_test_size(
         """
 models:
   - logistic_regression
-  
+
 ssl_methods:
   - name: supervised
-  
+
 label_fractions:
   - 0.10
 
@@ -131,7 +131,7 @@ seeds:
     config = load_benchmark_config(config_path)
 
     assert config.test_size == 0.2
-    
+
 def test_loader_rejects_missing_file(tmp_path: Path):
     """Loading a non-existing configuration file should fail clearly."""
     config_path = tmp_path / "missing.yaml"
@@ -227,10 +227,10 @@ def test_benchmark_loader_rejects_unknown_key(
         """
 models:
     - logistic_regression
-    
+
 ssl_methods:
     - name: supervised
-    
+
 label_fractions:
   - 0.1
 
@@ -295,7 +295,7 @@ datasets:
         match="Unknown keys",
     ):
         load_dataset_configs(config_path)
-        
+
 def test_benchmark_config_rejects_empty_models(supervised_ssl_method):
     """At least one benchmark model must be configured."""
     with pytest.raises(
@@ -325,7 +325,7 @@ def test_benchmark_config_rejects_duplicate_models(supervised_ssl_method):
             label_fractions=(0.1,),
             seeds=(42,),
         )
-        
+
 def test_benchmark_loader_rejects_ssl_method_without_name(
     tmp_path: Path,
 ):
@@ -355,7 +355,7 @@ seeds:
         match="Missing required keys",
     ):
         load_benchmark_config(config_path)
-        
+
 def test_benchmark_loader_rejects_unknown_ssl_method_key(
     tmp_path: Path,
 ):
@@ -386,3 +386,48 @@ seeds:
         match="Unknown keys in SSL method entry",
     ):
         load_benchmark_config(config_path)
+
+def test_loader_preserves_standalone_ssl_requirement(
+    tmp_path: Path,
+):
+    """The loader should preserve standalone SSL configuration."""
+    config_path = tmp_path / "benchmark.yaml"
+
+    config_path.write_text(
+        """
+models:
+  - logistic_regression
+  - random_forest
+
+ssl_methods:
+  - name: label_spreading
+    requires_base_model: false
+    params:
+      kernel: knn
+      n_neighbors: 7
+      alpha: 0.2
+      max_iterations: 30
+
+label_fractions:
+  - 0.1
+
+seeds:
+  - 42
+""".strip(),
+        encoding="utf-8",
+    )
+
+    config = load_benchmark_config(config_path)
+
+    assert config.ssl_methods == (
+        SSLMethodConfig(
+            name="label_spreading",
+            requires_base_model=False,
+            params={
+                "kernel": "knn",
+                "n_neighbors": 7,
+                "alpha": 0.2,
+                "max_iterations": 30,
+            },
+        ),
+    )
