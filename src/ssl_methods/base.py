@@ -1,9 +1,7 @@
-"""Common interface for semi-supervised learning methods.
+"""Common interface for bechmark learning methods.
 
-This module defines the contract implemented by semi-supervised learning
-strategies evaluated by the benchmark. SSL methods operate on labeled and
-unlabeled training data while delegating predictive modeling to a benchmark
-classifier.
+Strategies use labeled and unlabeled training data. They either fit a
+supplied base classifier or provide their own standalone classifier.
 """
 
 from abc import ABC, abstractmethod
@@ -12,7 +10,7 @@ from models.base import BenchmarkClassifier, FeatureMatrix, TargetArray
 
 
 class SSLMethod(ABC):
-    """Abstract interface for semi-supervised learning strategies.
+    """Abstract interface for bechmark learning strategies.
 
     An SSL method receives a benchmark classifier together with labeled and
     unlabeled training samples and is responsible for fitting the classifier
@@ -30,7 +28,7 @@ class SSLMethod(ABC):
     def params(self) -> dict[str, Any]:
         """Return the effective configuration of the learning strategy."""
         raise NotImplementedError
-    
+
     @property
     @abstractmethod
     def requires_base_model(self) -> bool:
@@ -41,7 +39,7 @@ class SSLMethod(ABC):
     def fit(
         self,
         *,
-        model: BenchmarkClassifier,
+        model: BenchmarkClassifier | None,
         x_labeled: FeatureMatrix,
         y_labeled: TargetArray,
         x_unlabeled: FeatureMatrix,
@@ -49,7 +47,7 @@ class SSLMethod(ABC):
         """Fit a classifier using labeled and unlabeled training data.
 
         Args:
-            model: Benchmark classifier to train.
+            model: Benchmark classifier to train or None for standaone methods.
             x_labeled: Feature matrix containing labeled training samples.
             y_labeled: Labels associated with the labeled training samples.
             x_unlabeled: Feature matrix containing unlabeled training samples.
